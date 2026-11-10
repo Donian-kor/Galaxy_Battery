@@ -3,6 +3,26 @@
 삼성 덤프스테이트 배터리 로그(`dumpState_*.log`)를 읽어 배터리 건강도(SOH),
 충전 사이클과 용량을 보여주는 오프라인 진단 앱입니다.
 
+## 스크린샷
+
+<table>
+  <tr>
+    <td align="center"><img width="450" alt="폴드3" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold4.png" /></td>
+    <td align="center"><img width="250" alt="노트10+" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10.png" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>폴드3 (Galaxy Z Fold3)</b></td>
+    <td align="center"><b>노트10+ (Galaxy Note10+)</b></td>
+  </tr>
+</table>
+
+## 지원 시리즈
+
+- Galaxy S: S10, S20, S21, S22, S23, S25, S26
+- Galaxy Z Fold: Fold 1, Fold 2, Fold 3, Fold 4, Fold 5, Fold 6, Fold 7, Fold 8
+- Galaxy Z Flip: Flip 1, Flip 3, Flip 4, Flip 5, Flip 6, Flip 7, Flip 8
+- Galaxy Note: Note10, Note20
+
 - 앱 이름: 갤럭시 배터리 정보
 - 패키지: `com.alyaqdhan.galaxy_battery`
 - 버전: 2.1.1 (versionCode 20110)
@@ -30,19 +50,6 @@
 
 > [!NOTE]
 
-
-## 스크린샷
-
-<table>
-  <tr>
-    <td align="center"><img width="450" alt="폴드3" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold4.png" /></td>
-    <td align="center"><img width="250" alt="노트10+" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10.png" /></td>
-  </tr>
-  <tr>
-    <td align="center"><b>폴드3 (Galaxy Z Fold3)</b></td>
-    <td align="center"><b>노트10+ (Galaxy Note10+)</b></td>
-  </tr>
-</table>
 
 ## 수집하는 값
 
