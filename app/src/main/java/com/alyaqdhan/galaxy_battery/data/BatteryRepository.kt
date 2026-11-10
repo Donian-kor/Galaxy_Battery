@@ -123,35 +123,28 @@ class BatteryRepository(
     fun parseLatestLog(folderUri: Uri): BatteryInfo {
         val logEntry = findLatestLogEntry(folderUri)
             ?: return BatteryInfo(healthPercent = null, cycleCount = null, errorMessage = "NO_LOG_FOUND")
+        return parseLatestLog(folderUri, logEntry)
+    }
 
-        val fileUri = DocumentsContract.buildDocumentUriUsingTree(folderUri, logEntry.id)
-        val info = try {
-            context.contentResolver.openInputStream(fileUri)?.use { stream ->
-                BatteryParser.parseInputStream(stream, logEntry.name)
-            } ?: BatteryInfo(
-                healthPercent = null, cycleCount = null,
-                logFileName = logEntry.name,
-                errorMessage = "Could not open ${logEntry.name}"
-            )
-        } catch (e: Exception) {
-            BatteryInfo(
-                healthPercent = null, cycleCount = null,
-                logFileName = logEntry.name,
-                errorMessage = "Read error: ${e.localizedMessage}"
-            )
-        }
-
+    /**
+     * 이미 찾아 둔 [logEntry]를 파싱한다. 폴더 목록을 다시 훑지 않으므로,
+     * 호출부가 [findLatestLogEntry] 결과를 이미 갖고 있으면 이쪽을 쓴다.
+     */
+    fun parseLatestLog(folderUri: Uri, logEntry: DocEntry): BatteryInfo {
+        val info = parseLogEntry(folderUri, logEntry)
         BatteryCache.cacheBatteryInfo(prefs, info)
         return info
     }
 
     fun smartScan(folderUri: Uri): BatteryInfo {
-        val latestEntry = findLatestLogEntry(folderUri)
-        if (latestEntry == null) {
-            val cached = BatteryCache.loadCachedBatteryInfo(prefs)
-            if (cached != null) return cached
-            return BatteryInfo(healthPercent = null, cycleCount = null, errorMessage = "NO_LOG_FOUND")
-        }
+        val latestEntry = findLatestLogEntry(folderUri) ?: return cachedOrNoLog()
+        return smartScan(folderUri, latestEntry)
+    }
+
+    /**
+     * 이미 찾아 둔 [latestEntry]로 스캔한다. 폴더 목록을 다시 훑지 않는다.
+     */
+    fun smartScan(folderUri: Uri, latestEntry: DocEntry): BatteryInfo {
         val cached = BatteryCache.loadCachedBatteryInfo(prefs)
         if (cached != null && cached.logFileName == latestEntry.name) {
             // 캐시에 핵심 텔레메트리(전압·온도·전류)가 모두 누락돼 있으면,
@@ -161,8 +154,12 @@ class BatteryRepository(
                     cached.currentNowMa == null
             if (!needsRescan) return cached
         }
-        return parseLatestLog(folderUri)
+        return parseLatestLog(folderUri, latestEntry)
     }
+
+    private fun cachedOrNoLog(): BatteryInfo =
+        BatteryCache.loadCachedBatteryInfo(prefs)
+            ?: BatteryInfo(healthPercent = null, cycleCount = null, errorMessage = "NO_LOG_FOUND")
 
     fun extractBatterySection(folderUri: Uri, entry: DocEntry): String {
         val fileUri = DocumentsContract.buildDocumentUriUsingTree(folderUri, entry.id)

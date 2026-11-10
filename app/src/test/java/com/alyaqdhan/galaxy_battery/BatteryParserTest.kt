@@ -374,4 +374,22 @@ class BatteryParserTest {
         assertTrue(result.endsWith("line 199999: some value"))
         assertTrue("Took ${elapsed}ms", elapsed < 10_000)
     }
+
+    @Test
+    fun `a large log is parsed quickly`() {
+        val log = buildString {
+            appendLine("== dumpstate: 2026-10-31 08:15:30")
+            repeat(200_000) {
+                appendLine("10-31 08:15:30.123  1234  5678 I SystemServer: service event $it payload")
+            }
+            appendLine("  mSavedBatteryAsoc: 87")
+            appendLine("  voltage: 4200")
+        }
+        val started = System.currentTimeMillis()
+        val info    = parse(log)
+        val elapsed = System.currentTimeMillis() - started
+        assertEquals(87, info.healthPercent)
+        assertEquals(4200, info.voltageMv)
+        assertTrue("Took ${elapsed}ms", elapsed < 10_000)
+    }
 }

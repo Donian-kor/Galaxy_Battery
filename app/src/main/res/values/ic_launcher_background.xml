@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#0A0E18</color>
+    <!-- 아이콘 아트워크의 바깥 여백과 같은 색이라 마스크 경계가 드러나지 않는다. -->
+    <color name="ic_launcher_background">#000000</color>
 </resources>

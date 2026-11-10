@@ -153,25 +153,10 @@ object BatteryParser {
         val llbRegex = Regex("""^LLB\s+(CAL|MAN):\s*(\d{8})\s*$""", RegexOption.IGNORE_CASE)
         val compactDateFmt = SimpleDateFormat("yyyyMMdd", Locale.US)
 
-        val levelRegex         = Regex("""^level:\s*(-?\d+)""")
-        val chargeCounterRegex = Regex("""^[Cc]harge counter:\s*(-?\d+)""")
-        val maxCapacityRegex   = Regex("""^Maximum capacity:\s*(-?\d+)""")
-        val designCapRegex     = Regex("""^Design capacity:\s*(-?\d+)""")
-        val voltageRegex       = Regex("""^voltage:\s*(-?\d+)""")
-        val temperatureRegex   = Regex("""^temperature:\s*(-?\d+)""")
-        val currentNowRegex    = Regex("""^current now:\s*(-?\d+)""")
-        val statusRegex        = Regex("""^status:\s*(-?\d+)""")
+        // 덤프 로그는 수십 MB라 줄마다 정규식을 여러 개 돌리면 폴더를 고를 때 체감될 만큼 느리다.
+        // 값 추출은 leadingNumber/inlineNumber로 처리하고, 정규식은 아래 두 곳(날짜·LLB)에만 남긴다.
 
-        // ACTION_BATTERY_CHANGED 인라인 키-값 (예: voltage:4256, temperature:259, cc:3864000)
-        val inlineVoltageRegex   = Regex("""voltage:(-?\d+)""")
-        val inlineTempRegex      = Regex("""temperature:(-?\d+)""")
-        val inlineCurrentRegex   = Regex("""current_avg:(-?\d+)""")
-        val inlineChargeCounter  = Regex("""cc:(\d+)""")
-        val inlineCycleCount     = Regex("""cycle_count:(\d+)""")
-        val inlineHealthRegex    = Regex("""health:(\d+)""")
-        val inlineStatusRegex    = Regex("""status:(\d+)""")
-
-        BufferedReader(InputStreamReader(stream)).use { reader ->
+        BufferedReader(InputStreamReader(stream), 1 shl 16).use { reader ->
             reader.forEachLine { line ->
                 val t = line.trim()
 
@@ -189,7 +174,7 @@ object BatteryParser {
                     val raw = extractValueOrNull(t, "mSavedBatteryUsage:")
                     usage = if (raw != null) raw / 100 else null
                 }
-                if (batteryDateMs == 0L) {
+                if (batteryDateMs == 0L && t.startsWith("LLB", ignoreCase = true)) {
                     llbRegex.find(t)?.let { m ->
                         llbType = m.groupValues[1].uppercase()
                         batteryDateMs = try {
@@ -197,7 +182,7 @@ object BatteryParser {
                         } catch (_: Exception) { 0L }
                     }
                 }
-                if (logTimestampMs == 0L) {
+                if (logTimestampMs == 0L && t.length >= 19 && looksLikeTimestampLine(t)) {
                     fullDateTimeRegex.find(t)?.let { m ->
                         logTimestampMs = dateTimeFmt.parse(m.groupValues[1])?.time ?: 0L
                     } ?: bracketDateTimeRegex.find(t)?.let { m ->
@@ -206,65 +191,51 @@ object BatteryParser {
                 }
 
                 // ── Live battery service telemetry ────────────────────────────
-                if (level < 0) levelRegex.find(t)?.let { level = it.groupValues[1].toIntOrNull() ?: -1 }
+                if (level < 0) leadingNumber(t, "level:")?.let { level = it }
 
                 if (chargeCounterMah == null)
-                    chargeCounterRegex.find(t)?.let { chargeCounterMah = microAhToMah(it.groupValues[1].toIntOrNull()) }
+                    (leadingNumber(t, "charge counter:") ?: leadingNumber(t, "Charge counter:"))
+                        ?.let { chargeCounterMah = microAhToMah(it) }
                 if (measuredCapacityMah == null)
-                    maxCapacityRegex.find(t)?.let { measuredCapacityMah = microAhToMah(it.groupValues[1].toIntOrNull()) }
+                    leadingNumber(t, "Maximum capacity:")?.let { measuredCapacityMah = microAhToMah(it) }
                 if (designCapacityMah == null)
-                    designCapRegex.find(t)?.let { designCapacityMah = microAhToMah(it.groupValues[1].toIntOrNull()) }
+                    leadingNumber(t, "Design capacity:")?.let { designCapacityMah = microAhToMah(it) }
                 if (voltageMv == null)
-                    voltageRegex.find(t)?.let { voltageMv = it.groupValues[1].toIntOrNull()?.takeIf { v -> v > 0 } }
+                    leadingNumber(t, "voltage:")?.takeIf { v -> v > 0 }?.let { voltageMv = it }
                 if (temperatureC == null)
-                    temperatureRegex.find(t)?.let { m ->
-                        m.groupValues[1].toIntOrNull()?.let { tenths ->
-                            if (tenths > 0) temperatureC = tenths / 10f
-                        }
+                    leadingNumber(t, "temperature:")?.let { tenths ->
+                        if (tenths > 0) temperatureC = tenths / 10f
                     }
                 if (currentNowMa == null)
-                    currentNowRegex.find(t)?.let { m ->
-                        m.groupValues[1].toIntOrNull()?.let { currentNowMa = currentToMa(it) }
-                    }
+                    leadingNumber(t, "current now:")?.let { currentNowMa = currentToMa(it) }
                 if (chargeStatus == null)
-                    statusRegex.find(t)?.let {
-                        chargeStatus = it.groupValues[1].toIntOrNull()?.takeIf { s -> s in 1..5 }
-                    }
+                    leadingNumber(t, "status:")?.takeIf { s -> s in 1..5 }?.let { chargeStatus = it }
 
                 // ── ACTION_BATTERY_CHANGED 인라인 원격 측정 ─────────────────────
                 // 예: voltage:4256, temperature:259, current_avg:1, cc:3864000,
                 //     cycle_count:0, health:2, ac:true, usb:false, wireless:false
                 if (voltageMv == null)
-                    inlineVoltageRegex.find(t)?.let { m ->
-                        m.groupValues[1].toIntOrNull()?.takeIf { v -> v > 0 }?.let { voltageMv = it }
-                    }
+                    inlineNumber(t, "voltage:")?.takeIf { v -> v > 0 }?.let { voltageMv = it }
                 if (temperatureC == null)
-                    inlineTempRegex.find(t)?.let { m ->
-                        m.groupValues[1].toIntOrNull()?.let { tenths ->
-                            if (tenths > 0) temperatureC = tenths / 10f
-                        }
+                    inlineNumber(t, "temperature:")?.let { tenths ->
+                        if (tenths > 0) temperatureC = tenths / 10f
                     }
                 if (currentNowMa == null)
-                    inlineCurrentRegex.find(t)?.let { m ->
-                        m.groupValues[1].toIntOrNull()?.let { currentNowMa = currentToMa(it) }
-                    }
+                    inlineNumber(t, "current_avg:")?.let { currentNowMa = currentToMa(it) }
                 if (chargeCounterMah == null)
-                    inlineChargeCounter.find(t)?.let { m ->
-                        m.groupValues[1].toIntOrNull()?.let { chargeCounterMah = microAhToMah(it) }
-                    }
+                    inlineNumber(t, "cc:", allowNegative = false)?.let { chargeCounterMah = microAhToMah(it) }
                 if (usage == null)
-                    inlineCycleCount.find(t)?.let { m ->
-                        m.groupValues[1].toIntOrNull()?.let { usage = it }
-                    }
+                    inlineNumber(t, "cycle_count:", allowNegative = false)?.let { usage = it }
                 if (chargeStatus == null)
-                    inlineStatusRegex.find(t)?.let { m ->
-                        m.groupValues[1].toIntOrNull()?.takeIf { s -> s in 1..5 }?.let { chargeStatus = it }
-                    }
+                    inlineNumber(t, "status:", allowNegative = false)?.takeIf { s -> s in 1..5 }
+                        ?.let { chargeStatus = it }
 
-                when {
-                    (t.startsWith("AC powered:") || t.contains("ac:true")) && t.contains("true") -> powerSource = PowerSource.AC
-                    (t.startsWith("USB powered:") || t.contains("usb:true")) && t.contains("true") -> powerSource = PowerSource.USB
-                    (t.startsWith("Wireless powered:") || t.contains("wireless:true")) && t.contains("true") -> powerSource = PowerSource.WIRELESS
+                if (t.contains("true")) {
+                    when {
+                        t.startsWith("AC powered:") || t.contains("ac:true") -> powerSource = PowerSource.AC
+                        t.startsWith("USB powered:") || t.contains("usb:true") -> powerSource = PowerSource.USB
+                        t.startsWith("Wireless powered:") || t.contains("wireless:true") -> powerSource = PowerSource.WIRELESS
+                    }
                 }
             }
         }
@@ -323,6 +294,44 @@ object BatteryParser {
     /** Samsung prints "current now" in mA; Android's µA figures are three digits larger. */
     private fun currentToMa(value: Int): Int =
         if (abs(value) > 20_000) value / 1000 else value
+
+    /** 정규식 두 개를 줄마다 돌리지 않도록, 날짜가 있을 수 있는 줄만 걸러낸다. */
+    private fun looksLikeTimestampLine(t: String): Boolean =
+        t[0] == '[' || t.contains("dumpstate:") || t.contains("Build time:")
+
+    /** `key`로 시작하는 줄에서 첫 정수를 읽는다. (정규식 `^key:\s*(-?\d+)` 대체) */
+    private fun leadingNumber(t: String, key: String): Int? {
+        if (!t.startsWith(key)) return null
+        var i = key.length
+        while (i < t.length && t[i].isWhitespace()) i++
+        return numberAt(t, i, allowNegative = true)
+    }
+
+    /** `key` 뒤에 곧바로 붙은 정수를 첫 번째 것부터 찾는다. (정규식 `key:(-?\d+)` 대체) */
+    private fun inlineNumber(t: String, key: String, allowNegative: Boolean = true): Int? {
+        var searchFrom = 0
+        while (true) {
+            val at = t.indexOf(key, searchFrom)
+            if (at < 0) return null
+            numberAt(t, at + key.length, allowNegative)?.let { return it }
+            searchFrom = at + 1
+        }
+    }
+
+    /** [start] 위치에서 `-?\d+`를 읽는다. 숫자가 없으면 null. */
+    private fun numberAt(t: String, start: Int, allowNegative: Boolean): Int? {
+        var i = start
+        var negative = false
+        if (allowNegative && i < t.length && t[i] == '-') {
+            negative = true
+            i++
+        }
+        val digitsStart = i
+        while (i < t.length && t[i] in '0'..'9') i++
+        if (i == digitsStart) return null
+        val text = if (negative) "-" + t.substring(digitsStart, i) else t.substring(digitsStart, i)
+        return text.toIntOrNull()
+    }
 
 
     private fun extractValueOrNull(line: String, key: String): Int? {

@@ -117,6 +117,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             .any { it.uri.toString() == savedUri.toString() && it.isReadPermission }
         if (!hasSyncPerm) return false
 
+        // 폴더를 새로 고른 직후에는 SetupActivity가 대시보드를 먼저 띄우고 스캔은 계속된다.
+        // 여기서 또 스캔하면 같은 로그를 두 번 읽게 되므로, 진행 중인 스캔 결과를 기다린다.
+        if (isLoadingDetail) return true
+
         viewModelScope.launch {
             if (!repository.hasPersistedPermission(savedUri)) {
                 // Shouldn't normally reach here (handled synchronously above),
@@ -149,7 +153,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 if (latestEntry.name != cached.logFileName) {
                     val liveInfo = withContext(Dispatchers.IO) {
-                        repository.parseLatestLog(savedUri)
+                        repository.parseLatestLog(savedUri, latestEntry)
                     }
                     if (liveInfo.readSuccess) batteryInfo = liveInfo
                 }
@@ -166,7 +170,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     return@launch
                 }
                 val info = withContext(Dispatchers.IO) {
-                    repository.smartScan(savedUri)
+                    repository.smartScan(savedUri, latestEntry)
                 }
                 isLoadingDetail  = false
                 batteryInfo      = info
@@ -236,7 +240,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             onResult(true)
 
             val info = withContext(Dispatchers.IO) {
-                repository.smartScan(uri)
+                repository.smartScan(uri, latestEntry)
             }
             isLoadingDetail = false
 
@@ -378,7 +382,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             // New file appeared, or loaded file was deleted — parse latest
             isLoadingDetail = true
             val info = withContext(Dispatchers.IO) {
-                repository.parseLatestLog(uri)
+                repository.parseLatestLog(uri, latestEntry)
             }
             isRefreshing    = false
             isLoadingDetail = false
@@ -452,6 +456,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun checkOnResume() {
         val uri = folderUri ?: return
+        // 폴더 선택 직후의 스캔이 진행 중이면 그쪽이 결과와 오류를 모두 처리한다.
+        if (isLoadingDetail) return
         viewModelScope.launch {
             val hasPerm = withContext(Dispatchers.IO) {
                 repository.hasPersistedPermission(uri)
@@ -504,7 +510,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                                 // Need to parse the latest file
                                 isLoadingDetail = true
                                 val info = withContext(Dispatchers.IO) {
-                                    repository.parseLatestLog(uri)
+                                    repository.parseLatestLog(uri, latestEntry)
                                 }
                                 isLoadingDetail = false
                                 if (info.readSuccess) {
