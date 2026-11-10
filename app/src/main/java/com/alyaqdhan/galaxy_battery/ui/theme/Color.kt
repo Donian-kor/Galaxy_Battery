@@ -16,12 +16,14 @@ import androidx.compose.ui.platform.LocalContext
 
 // ── Accent palette ────────────────────────────────────────────────────────────
 val AccentGreen  = Color(0xFF00E5A0)
+val AccentYellow = Color(0xFFFFD54F)
 val AccentOrange = Color(0xFFFFAA44)
 val AccentRed    = Color(0xFFFF5C6C)
 val AccentBlue   = Color(0xFF4DA6FF)
 
 // Darker variants for light theme gauge contrast
 val AccentGreenLight  = Color(0xFF007A50)
+val AccentYellowLight = Color(0xFF9A6700)
 val AccentOrangeLight = Color(0xFFB85C00)
 val AccentRedLight    = Color(0xFFB52233)
 val AccentBlueLight   = Color(0xFF1A5FAA)
@@ -137,6 +139,7 @@ data class AppColors(
     val cornerButton: Color,
     val textMuted: Color,
     val gaugeGreen: Color,
+    val gaugeYellow: Color,
     val gaugeOrange: Color,
     val gaugeRed: Color,
     val gaugeBlue: Color,
@@ -162,6 +165,7 @@ internal val ClassicDarkColors = AppColors(
     cornerButton      = ClassicDarkScheme.surfaceContainerLow,
     textMuted         = DarkTextMuted,
     gaugeGreen        = AccentGreen,
+    gaugeYellow       = AccentYellow,
     gaugeOrange       = AccentOrange,
     gaugeRed          = AccentRed,
     gaugeBlue         = AccentBlue,
@@ -187,6 +191,7 @@ internal val ClassicLightColors = AppColors(
     cornerButton      = ClassicLightScheme.surfaceContainerHighest,
     textMuted         = LightTextMuted,
     gaugeGreen        = AccentGreenLight,
+    gaugeYellow       = AccentYellowLight,
     gaugeOrange       = AccentOrangeLight,
     gaugeRed          = AccentRedLight,
     gaugeBlue         = AccentBlueLight,
@@ -235,4 +240,3 @@ internal fun dynamicAppColors(scheme: ColorScheme, darkTheme: Boolean) =
 internal val LocalAppColors = staticCompositionLocalOf<AppColors> {
     error("No AppColors provided: wrap the content in GalaxyBatteryTheme")
 }
-

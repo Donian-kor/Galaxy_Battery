@@ -15,9 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -77,35 +75,6 @@ private fun DashboardCard(
     }
 }
 
-/** The design's "live" dot: a solid core with a fading, expanding ring. */
-@Composable
-private fun PulsingDot(color: Color) {
-    val transition = rememberInfiniteTransition(label = "gauge_dot")
-    val ringAlpha by transition.animateFloat(
-        initialValue = 0.45f,
-        targetValue  = 0f,
-        animationSpec = infiniteRepeatable(tween(1100, easing = LinearEasing), RepeatMode.Restart),
-        label = "dot_alpha"
-    )
-    val ringScale by transition.animateFloat(
-        initialValue = 1f,
-        targetValue  = 2.2f,
-        animationSpec = infiniteRepeatable(tween(1100, easing = LinearEasing), RepeatMode.Restart),
-        label = "dot_scale"
-    )
-
-    Box(Modifier.size(8.dp), contentAlignment = Alignment.Center) {
-        Box(
-            Modifier
-                .size(8.dp)
-                .scale(ringScale)
-                .alpha(ringAlpha)
-                .background(color, CircleShape)
-        )
-        Box(Modifier.size(8.dp).background(color, CircleShape))
-    }
-}
-
 // ── SOH hero card ─────────────────────────────────────────────────────────────
 
 @Composable
@@ -116,9 +85,10 @@ fun HealthGaugeCard(
     amplitude: Float,
     gaugeReplayKey: Int = 0
 ) {
-    val isUnsupported = info.healthUnsupported
-    val targetPct =
-        if (isUnsupported) 100f else (info.healthPercent ?: 0).coerceIn(0, 100).toFloat()
+    val assessment = BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue)
+    val asocPercent = info.asocValue?.takeIf { it in 1..100 }
+    val isUnsupported = asocPercent == null
+    val targetPct = asocPercent?.toFloat() ?: 0f
 
     LaunchedEffect(isLoadingDetail, targetPct, gaugeReplayKey) {
         if (isLoadingDetail) {
@@ -136,27 +106,45 @@ fun HealthGaugeCard(
     }
 
     val animPct = arcAnimatable.value * 100f
+    val bsohPct = info.bsohPercent?.toFloat()
+    val bsohAnimPct by animateFloatAsState(
+        targetValue = bsohPct ?: 0f,
+        animationSpec = tween(1400, easing = FastOutSlowInEasing),
+        label = "bsoh_gauge"
+    )
 
     val gaugeColor by animateColorAsState(
         targetValue = when {
-            isLoadingDetail   -> gaugeBlue()
-            isUnsupported     -> gaugeGray()
-            animPct >= 80f    -> gaugeGreen()
-            animPct >= 60f    -> gaugeOrange()
-            else              -> gaugeRed()
+            isLoadingDetail -> gaugeBlue()
+            assessment.grade == BatteryHealthGrade.GOOD -> gaugeGreen()
+            assessment.grade == BatteryHealthGrade.NORMAL -> gaugeYellow()
+            assessment.grade == BatteryHealthGrade.WEAK -> gaugeOrange()
+            assessment.grade == BatteryHealthGrade.BAD -> gaugeRed()
+            else -> gaugeGray()
         },
         animationSpec = tween(300),
         label = "gauge_color"
     )
+    val bsohGaugeColor by animateColorAsState(
+        targetValue = when {
+            isLoadingDetail -> gaugeBlue()
+            bsohPct == null -> gaugeGray()
+            bsohPct >= 80f -> gaugeGreen()
+            bsohPct >= 60f -> gaugeOrange()
+            else -> gaugeRed()
+        },
+        animationSpec = tween(300),
+        label = "bsoh_gauge_color"
+    )
 
     val statusLabel = stringResource(
         when {
-            isLoadingDetail  -> R.string.status_loading
-            isUnsupported    -> R.string.status_unsupported
-            animPct >= 99.9f -> R.string.health_new
-            animPct >= 80f   -> R.string.health_good
-            animPct >= 60f   -> R.string.health_fair
-            else             -> R.string.health_poor
+            isLoadingDetail -> R.string.status_loading
+            assessment.grade == BatteryHealthGrade.GOOD -> R.string.assessment_grade_good
+            assessment.grade == BatteryHealthGrade.NORMAL -> R.string.assessment_grade_normal
+            assessment.grade == BatteryHealthGrade.WEAK -> R.string.assessment_grade_weak
+            assessment.grade == BatteryHealthGrade.BAD -> R.string.assessment_grade_bad
+            else -> R.string.assessment_grade_undetermined
         }
     )
 
@@ -164,24 +152,6 @@ fun HealthGaugeCard(
     val inset  = appColors().inset
 
     DashboardCard(glow = true) {
-        // Header: live dot + title only (source chip moved to bottom analysis card)
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            PulsingDot(gaugeColor)
-            Spacer(Modifier.width(8.dp))
-            Text(
-                stringResource(R.string.gauge_title_soh),
-                color = textPrimary(),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                maxLines = 1,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Spacer(Modifier.height(8.dp))
-
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val lowTitle = stringResource(R.string.gauge_scale_low_title)
             val lowDescription = stringResource(R.string.gauge_scale_low_desc)
@@ -189,50 +159,44 @@ fun HealthGaugeCard(
             val midDescription = stringResource(R.string.gauge_scale_mid_desc)
             val highTitle = stringResource(R.string.gauge_scale_high_title)
             val highDescription = stringResource(R.string.gauge_scale_high_desc)
-            val compactGaugeSize = minOf(maxWidth, 208.dp)
+            val bsohLabel = stringResource(R.string.gauge_bsoh_label)
+            val noBsohValue = stringResource(R.string.gauge_bsoh_missing)
+            val compactGaugeSize = minOf(208.dp, (maxWidth - 16.dp) / 2)
 
-            if (maxWidth < 360.dp) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    HealthGaugeDial(
-                        modifier = Modifier.size(compactGaugeSize),
-                        animPct = animPct,
-                        isLoadingDetail = isLoadingDetail,
-                        isUnsupported = isUnsupported,
-                        amplitude = amplitude,
-                        statusLabel = statusLabel,
-                        gaugeColor = gaugeColor,
-                        inset = inset,
-                        border = border
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ScaleMarker(Modifier.weight(1f), lowTitle, lowDescription, gaugeRed())
-                        ScaleMarker(Modifier.weight(1f), midTitle, midDescription, gaugeOrange())
-                        ScaleMarker(Modifier.weight(1f), highTitle, highDescription, gaugeGreen())
-                    }
-                }
-            } else {
+            if (maxWidth >= 560.dp) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    HealthGaugeDial(
-                        modifier = Modifier.weight(1f).size(208.dp),
+                    LabeledHealthGauge(
+                        modifier = Modifier.width(208.dp),
+                        label = stringResource(R.string.gauge_asoc_label),
+                        gaugeSize = 208.dp,
                         animPct = animPct,
+                        hasValue = !isUnsupported,
                         isLoadingDetail = isLoadingDetail,
-                        isUnsupported = isUnsupported,
                         amplitude = amplitude,
                         statusLabel = statusLabel,
                         gaugeColor = gaugeColor,
                         inset = inset,
                         border = border
                     )
+                    LabeledHealthGauge(
+                        modifier = Modifier.width(208.dp),
+                        label = bsohLabel,
+                        gaugeSize = 208.dp,
+                        animPct = bsohAnimPct,
+                        hasValue = bsohPct != null,
+                        isLoadingDetail = isLoadingDetail,
+                        amplitude = amplitude,
+                        emptyLabel = noBsohValue,
+                        gaugeColor = bsohGaugeColor,
+                        inset = inset,
+                        border = border
+                    )
                     Column(
-                        Modifier.weight(0.4f),
+                        Modifier.weight(1f),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -243,9 +207,186 @@ fun HealthGaugeCard(
                         ScaleMarker(Modifier.fillMaxWidth(), highTitle, highDescription, gaugeGreen())
                     }
                 }
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        LabeledHealthGauge(
+                            modifier = Modifier.weight(1f),
+                            label = stringResource(R.string.gauge_asoc_label),
+                            gaugeSize = compactGaugeSize,
+                            animPct = animPct,
+                            hasValue = !isUnsupported,
+                            isLoadingDetail = isLoadingDetail,
+                            amplitude = amplitude,
+                            statusLabel = statusLabel,
+                            gaugeColor = gaugeColor,
+                            inset = inset,
+                            border = border
+                        )
+                        LabeledHealthGauge(
+                            modifier = Modifier.weight(1f),
+                            label = bsohLabel,
+                            gaugeSize = compactGaugeSize,
+                            animPct = bsohAnimPct,
+                            hasValue = bsohPct != null,
+                            isLoadingDetail = isLoadingDetail,
+                            amplitude = amplitude,
+                            emptyLabel = noBsohValue,
+                            gaugeColor = bsohGaugeColor,
+                            inset = inset,
+                            border = border
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ScaleMarker(Modifier.weight(1f), lowTitle, lowDescription, gaugeRed())
+                        ScaleMarker(Modifier.weight(1f), midTitle, midDescription, gaugeOrange())
+                        ScaleMarker(Modifier.weight(1f), highTitle, highDescription, gaugeGreen())
+                    }
+                }
             }
         }
+        Spacer(Modifier.height(12.dp))
+        BatteryAssessmentDetails(info, assessment)
 
+    }
+}
+
+@Composable
+private fun BatteryAssessmentDetails(
+    info: BatteryInfo,
+    assessment: BatteryHealthAssessment
+) {
+    val gradeText = stringResource(
+        when (assessment.grade) {
+            BatteryHealthGrade.GOOD -> R.string.assessment_grade_good
+            BatteryHealthGrade.NORMAL -> R.string.assessment_grade_normal
+            BatteryHealthGrade.WEAK -> R.string.assessment_grade_weak
+            BatteryHealthGrade.BAD -> R.string.assessment_grade_bad
+            BatteryHealthGrade.UNDETERMINED -> R.string.assessment_grade_undetermined
+        }
+    )
+    val gradeColor = when (assessment.grade) {
+        BatteryHealthGrade.GOOD -> gaugeGreen()
+        BatteryHealthGrade.NORMAL -> gaugeYellow()
+        BatteryHealthGrade.WEAK -> gaugeOrange()
+        BatteryHealthGrade.BAD -> gaugeRed()
+        BatteryHealthGrade.UNDETERMINED -> gaugeGray()
+    }
+    val missingValue = stringResource(R.string.assessment_missing_value)
+
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = appColors().inset,
+        border = BorderStroke(1.dp, cardBorderColor())
+    ) {
+        Column(Modifier.fillMaxWidth().padding(12.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.assessment_title),
+                        color = textPrimary(),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Text(
+                        stringResource(R.string.assessment_disclaimer),
+                        color = textMuted(),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+                Text(
+                    gradeText,
+                    color = gradeColor,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = cardBorderColor())
+            Spacer(Modifier.height(8.dp))
+            AssessmentValueRow(
+                stringResource(R.string.assessment_asoc_raw),
+                info.asocRaw.ifBlank { missingValue }
+            )
+            AssessmentValueRow(
+                stringResource(R.string.assessment_usage_raw),
+                info.usageRaw.ifBlank { missingValue }
+            )
+            AssessmentValueRow(
+                stringResource(R.string.assessment_converted_cycles),
+                assessment.convertedCycles?.toString() ?: missingValue
+            )
+        }
+    }
+}
+
+@Composable
+private fun AssessmentValueRow(label: String, value: String) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            modifier = Modifier.weight(1f),
+            color = textSecondary(),
+            style = MaterialTheme.typography.bodySmall
+        )
+        Text(
+            value,
+            color = textPrimary(),
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+            textAlign = TextAlign.End,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun LabeledHealthGauge(
+    modifier: Modifier,
+    label: String,
+    gaugeSize: Dp,
+    animPct: Float,
+    hasValue: Boolean,
+    isLoadingDetail: Boolean,
+    amplitude: Float,
+    gaugeColor: Color,
+    inset: Color,
+    border: Color,
+    statusLabel: String? = null,
+    emptyLabel: String? = null
+) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            label,
+            color = textSecondary(),
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+            maxLines = 1
+        )
+        Spacer(Modifier.height(4.dp))
+        HealthGaugeDial(
+            modifier = Modifier.size(gaugeSize),
+            animPct = animPct,
+            hasValue = hasValue,
+            isLoadingDetail = isLoadingDetail,
+            amplitude = amplitude,
+            statusLabel = statusLabel,
+            emptyLabel = emptyLabel,
+            gaugeColor = gaugeColor,
+            inset = inset,
+            border = border
+        )
     }
 }
 
@@ -253,61 +394,77 @@ fun HealthGaugeCard(
 private fun HealthGaugeDial(
     modifier: Modifier,
     animPct: Float,
+    hasValue: Boolean,
     isLoadingDetail: Boolean,
-    isUnsupported: Boolean,
     amplitude: Float,
-    statusLabel: String,
+    statusLabel: String?,
+    emptyLabel: String?,
     gaugeColor: Color,
     inset: Color,
     border: Color
 ) {
-    Box(modifier, contentAlignment = Alignment.Center) {
+    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val dialWidth = maxWidth
         GaugeArc(
-            progress = animPct / 100f,
+            progress = if (hasValue) animPct / 100f else 0f,
             trackColor = border,
             fillColor = gaugeColor,
             pulse = if (isLoadingDetail) amplitude else 1f,
             modifier = Modifier.fillMaxSize()
         )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    if (isLoadingDetail || isUnsupported) "—" else animPct.toInt().toString(),
-                    color = textPrimary(),
-                    style = MaterialTheme.typography.displaySmall.copy(
-                        fontFamily = TelemetryFontFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 42.sp
-                    )
-                )
-                Text(
-                    stringResource(R.string.gauge_percent_sign),
-                    color = gaugeColor,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontFamily = TelemetryFontFamily,
-                        fontWeight = FontWeight.Medium
-                    )
-                )
-            }
-            Spacer(Modifier.height(6.dp))
-            Surface(
-                shape = CircleShape,
-                color = inset.copy(alpha = 0.85f),
-                border = BorderStroke(1.dp, gaugeColor.copy(alpha = 0.4f))
-            ) {
-                Row(
-                    Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(Modifier.size(6.dp).background(gaugeColor, CircleShape))
-                    Spacer(Modifier.width(6.dp))
+            if (hasValue || isLoadingDetail) {
+                val valueFontSize = (dialWidth.value * 0.22f).coerceIn(22f, 42f).sp
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        statusLabel,
-                        color = gaugeColor,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold
+                        if (isLoadingDetail) "—" else animPct.toInt().toString(),
+                        color = textPrimary(),
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            fontFamily = TelemetryFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = valueFontSize
                         )
                     )
+                    Text(
+                        stringResource(R.string.gauge_percent_sign),
+                        color = gaugeColor,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontFamily = TelemetryFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = (valueFontSize.value * 0.65f).sp
+                        )
+                    )
+                }
+            } else {
+                Text(
+                    emptyLabel ?: "—",
+                    color = textSecondary(),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1
+                )
+            }
+
+            if (statusLabel != null) {
+                Spacer(Modifier.height(6.dp))
+                Surface(
+                    shape = CircleShape,
+                    color = inset.copy(alpha = 0.85f),
+                    border = BorderStroke(1.dp, gaugeColor.copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(Modifier.size(6.dp).background(gaugeColor, CircleShape))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            statusLabel,
+                            color = gaugeColor,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -528,81 +685,6 @@ fun TelemetryCard(
             }
         }
 
-        Spacer(Modifier.height(14.dp))
-        HorizontalDivider(color = border.copy(alpha = 0.6f))
-        Spacer(Modifier.height(10.dp))
-
-        // Vital telemetry rows
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            val voltage = info.voltageMv
-            VitalRow(
-                icon       = R.drawable.ic_sym_speed,
-                label      = stringResource(R.string.telemetry_voltage),
-                value      = if (voltage == null) stringResource(R.string.telemetry_no_data)
-                else stringResource(R.string.telemetry_mv, voltage.groupedDigits()),
-                valueColor = textPrimary()
-            )
-
-            val temperature = info.temperatureC
-            val tempChip = when {
-                temperature == null -> null
-                temperature >= 45f  -> stringResource(R.string.telemetry_temp_warm)
-                temperature <= 10f  -> stringResource(R.string.telemetry_temp_cold)
-                else                -> stringResource(R.string.telemetry_temp_normal)
-            }
-            val tempChipColor = when {
-                temperature == null -> muted
-                temperature >= 45f  -> gaugeRed()
-                temperature <= 10f  -> gaugeBlue()
-                else                -> gaugeGreen()
-            }
-            VitalRow(
-                icon        = R.drawable.ic_sym_thermostat,
-                label       = stringResource(R.string.telemetry_temperature),
-                value       = if (temperature == null) stringResource(R.string.telemetry_no_data)
-                else stringResource(
-                    R.string.telemetry_celsius,
-                    String.format(Locale.US, "%.1f", temperature)
-                ),
-                valueColor  = textPrimary(),
-                chip        = tempChip,
-                chipColor   = tempChipColor
-            )
-
-            val current    = info.currentNowMa
-            val charging   = info.chargeStatus == ChargeStatus.CHARGING ||
-                    (info.powerSource != PowerSource.NONE &&
-                            info.chargeStatus != ChargeStatus.DISCHARGING &&
-                            info.chargeStatus != ChargeStatus.FULL)
-            val currentChip = when {
-                info.chargeStatus == ChargeStatus.FULL          -> stringResource(R.string.telemetry_full)
-                info.powerSource == PowerSource.AC              -> stringResource(R.string.telemetry_charging_ac)
-                info.powerSource == PowerSource.USB             -> stringResource(R.string.telemetry_charging_usb)
-                info.powerSource == PowerSource.WIRELESS        -> stringResource(R.string.telemetry_charging_wireless)
-                info.chargeStatus == ChargeStatus.DISCHARGING   -> stringResource(R.string.telemetry_discharging)
-                else                                            -> null
-            }
-            val currentChipColor = when {
-                info.chargeStatus == ChargeStatus.FULL -> gaugeGreen()
-                charging                               -> gaugeGreen()
-                else                                   -> muted
-            }
-            VitalRow(
-                icon        = R.drawable.ic_sym_input,
-                label       = stringResource(
-                    if (charging) R.string.telemetry_current_charge
-                    else R.string.telemetry_current_discharge
-                ),
-                value       = if (current == null) stringResource(R.string.telemetry_no_data)
-                else stringResource(
-                    R.string.telemetry_ma,
-                    String.format(Locale.US, "%+,d", current)
-                ),
-                valueColor  = if (charging) gaugeGreen() else textSecondary(),
-                chip        = currentChip,
-                chipColor   = currentChipColor
-            )
-        }
     }
 }
 
@@ -806,104 +888,6 @@ private fun BatteryMonthsBadge(text: String, border: Color) {
             ),
             maxLines = 1
         )
-    }
-}
-
-@Composable
-private fun VitalRow(
-    icon: Int,
-    label: String,
-    value: String,
-    valueColor: Color,
-    chip: String? = null,
-    chipColor: Color = Color.Unspecified
-) {
-    val muted  = textMuted()
-    val border = cardBorderColor()
-
-    BoxWithConstraints(
-        Modifier
-            .fillMaxWidth()
-            .background(appColors().inset.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-            .border(1.dp, border.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp, vertical = 10.dp),
-    ) {
-        if (maxWidth < 320.dp) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                VitalRowLabel(icon, label, chip, chipColor, muted, Modifier.fillMaxWidth())
-                Text(
-                    value,
-                    color = valueColor,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontFamily = TelemetryFontFamily,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                VitalRowLabel(icon, label, chip, chipColor, muted, Modifier.weight(1f))
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    value,
-                    color = valueColor,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontFamily = TelemetryFontFamily,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun VitalRowLabel(
-    icon: Int,
-    label: String,
-    chip: String?,
-    chipColor: Color,
-    muted: Color,
-    modifier: Modifier
-) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            painterResource(icon),
-            contentDescription = null,
-            tint = muted,
-            modifier = Modifier.size(15.dp)
-        )
-        Spacer(Modifier.width(6.dp))
-        Text(
-            label,
-            color = textSecondary(),
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-        if (chip != null) {
-            Spacer(Modifier.width(6.dp))
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = chipColor.copy(alpha = 0.12f),
-                border = BorderStroke(1.dp, chipColor.copy(alpha = 0.3f))
-            ) {
-                Text(
-                    chip,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    color = chipColor,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    maxLines = 1
-                )
-            }
-        }
     }
 }
 

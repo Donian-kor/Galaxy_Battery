@@ -44,18 +44,6 @@ object BatteryReport {
             value(capacity(info.measuredCapacityMah))
         )
         lines += context.getString(
-            R.string.report_voltage,
-            value(info.voltageMv?.let { String.format(Locale.US, "%,d mV", it) })
-        )
-        lines += context.getString(
-            R.string.report_temperature,
-            value(info.temperatureC?.let { String.format(Locale.US, "%.1f ℃", it) })
-        )
-        lines += context.getString(
-            R.string.report_current,
-            value(info.currentNowMa?.let { String.format(Locale.US, "%+,d mA", it) })
-        )
-        lines += context.getString(
             R.string.report_log_file,
             value(info.logFileName)
         )

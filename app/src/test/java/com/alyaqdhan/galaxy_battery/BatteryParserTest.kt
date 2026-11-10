@@ -27,6 +27,8 @@ class BatteryParserTest {
         val info = parse("  mSavedBatteryAsoc: 87\n  mSavedBatteryBsoh: 90\n")
         assertEquals(87, info.healthPercent)
         assertEquals("asoc", info.healthSource)
+        assertEquals(90, info.bsohPercent)
+        assertEquals("90", info.bsohRaw)
         assertFalse(info.healthUnsupported)
         assertTrue(info.readSuccess)
     }
@@ -35,7 +37,18 @@ class BatteryParserTest {
     fun `bsoh is used when asoc is missing`() {
         val info = parse("  mSavedBatteryBsoh: 74\n")
         assertEquals(74, info.healthPercent)
+        assertEquals(74, info.bsohPercent)
         assertEquals("bsoh", info.healthSource)
+    }
+
+    @Test
+    fun `unsupported bsoh has no gauge value`() {
+        assertNull(parse("mSavedBatteryBsoh: [unsupported]\n").bsohPercent)
+    }
+
+    @Test
+    fun `bsoh values above one hundred are not used in the gauge`() {
+        assertNull(parse("mSavedBatteryBsoh: 101\n").bsohPercent)
     }
 
     @Test
@@ -257,32 +270,7 @@ class BatteryParserTest {
         assertNull(sections("just some text\nand more\n"))
     }
 
-    // ── Live telemetry ────────────────────────────────────────────────────────
-
-    @Test
-    fun `voltage is read in millivolts`() {
-        assertEquals(4382, parse("  voltage: 4382\n").voltageMv)
-    }
-
-    @Test
-    fun `a zero voltage is treated as missing`() {
-        assertNull(parse("  voltage: 0\n").voltageMv)
-    }
-
-    @Test
-    fun `temperature is read in tenths of a degree`() {
-        assertEquals(31.4f, parse("  temperature: 314\n").temperatureC!!, 0.001f)
-    }
-
-    @Test
-    fun `current now is read in milliamps`() {
-        assertEquals(1850, parse("  current now: 1850\n").currentNowMa)
-    }
-
-    @Test
-    fun `current printed in microamps is converted`() {
-        assertEquals(-1250, parse("  current now: -1250000\n").currentNowMa)
-    }
+    // ── Capacity and cycle parsing ────────────────────────────────────────────
 
     @Test
     fun `charge counter is converted from microamp hours`() {
@@ -322,44 +310,12 @@ class BatteryParserTest {
     }
 
     @Test
-    fun `charge status and power source are read`() {
-        val info = parse("  status: 2\n  AC powered: true\n")
-        assertEquals(ChargeStatus.CHARGING, info.chargeStatus)
-        assertEquals(PowerSource.AC, info.powerSource)
-    }
-
-    @Test
     fun `inline action_battery_changed line is parsed`() {
-        val log = "D BatteryService: Sending ACTION_BATTERY_CHANGED: level:94, status:3, health:2, " +
-            "voltage:4089, temperature:227, cycle_count:0, current_avg:-562, cc:3643752, ac:false, " +
-            "usb:false, wireless:false\n"
+        val log = "D BatteryService: Sending ACTION_BATTERY_CHANGED: level:94, " +
+            "cycle_count:0, cc:3643752\n"
         val info = parse(log)
-        assertEquals(4089, info.voltageMv)
-        assertEquals(22.7f, info.temperatureC!!, 0.01f)
-        assertEquals(-562, info.currentNowMa)
         assertEquals(3643, info.chargeCounterMah)
         assertEquals(0, info.cycleCount)
-        assertEquals(ChargeStatus.DISCHARGING, info.chargeStatus)
-        assertEquals(PowerSource.NONE, info.powerSource)
-    }
-
-    @Test
-    fun `inline ac true sets ac power source`() {
-        val info = parse("D BatteryService: Sending ACTION_BATTERY_CHANGED: level:100, status:5, " +
-            "voltage:4256, temperature:259, ac:true, usb:false, wireless:false\n")
-        assertEquals(PowerSource.AC, info.powerSource)
-    }
-
-    @Test
-    fun `inline usb true sets usb power source`() {
-        val info = parse("D BatteryService: Sending ACTION_BATTERY_CHANGED: level:100, status:2, " +
-            "voltage:4200, temperature:260, usb:true, ac:false, wireless:false\n")
-        assertEquals(PowerSource.USB, info.powerSource)
-    }
-
-    @Test
-    fun `an out of range status is ignored`() {
-        assertNull(parse("  status: 9\n").chargeStatus)
     }
 
     @Test
@@ -383,13 +339,13 @@ class BatteryParserTest {
                 appendLine("10-31 08:15:30.123  1234  5678 I SystemServer: service event $it payload")
             }
             appendLine("  mSavedBatteryAsoc: 87")
-            appendLine("  voltage: 4200")
+            appendLine("  mSavedBatteryUsage: 124500")
         }
         val started = System.currentTimeMillis()
         val info    = parse(log)
         val elapsed = System.currentTimeMillis() - started
         assertEquals(87, info.healthPercent)
-        assertEquals(4200, info.voltageMv)
+        assertEquals(1245, info.cycleCount)
         assertTrue("Took ${elapsed}ms", elapsed < 10_000)
     }
 }

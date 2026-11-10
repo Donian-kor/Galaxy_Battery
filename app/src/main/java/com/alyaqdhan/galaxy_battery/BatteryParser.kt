@@ -5,7 +5,6 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 object BatteryParser {
@@ -196,26 +195,23 @@ object BatteryParser {
 
     fun parseInputStream(stream: InputStream, fileName: String): BatteryInfo {
         var asoc: Int? = null
+        var asocValue: Int? = null
         var asocSeen = false
         var asocRaw = ""
         var bsoh: Int? = null
         var bsohRaw = ""
         var usage: Int? = null
         var usageRaw = ""
+        var batteryUsageValue: Int? = null
         var llbType = ""
         var batteryDateMs = 0L
         var logTimestampMs = 0L
 
-        // Live telemetry, from the battery service dump (not the backup block).
+        // 용량 계산에 사용하는 배터리 서비스 값 (백업 블록 외부).
         var level = -1
         var chargeCounterMah: Int? = null
         var measuredCapacityMah: Int? = null
         var designCapacityMah: Int? = null
-        var voltageMv: Int? = null
-        var temperatureC: Float? = null
-        var currentNowMa: Int? = null
-        var chargeStatus: Int? = null
-        var powerSource = PowerSource.NONE
 
         val fullDateTimeRegex = Regex("""(?:==\s*dumpstate:|dumpstate:|Build time:)\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})""")
         val bracketDateTimeRegex = Regex("""^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})]""")
@@ -234,6 +230,7 @@ object BatteryParser {
                     asocSeen = true
                     asocRaw = t.substringAfter("mSavedBatteryAsoc:").trim()
                     asoc = extractValueOrNull(t, "mSavedBatteryAsoc:")
+                    asocValue = extractSignedValueOrNull(t, "mSavedBatteryAsoc:")
                 }
                 if (t.contains("mSavedBatteryBsoh:")) {
                     bsohRaw = t.substringAfter("mSavedBatteryBsoh:").trim()
@@ -241,8 +238,8 @@ object BatteryParser {
                 }
                 if (t.contains("mSavedBatteryUsage:")) {
                     usageRaw = t.substringAfter("mSavedBatteryUsage:").trim()
-                    val raw = extractValueOrNull(t, "mSavedBatteryUsage:")
-                    usage = if (raw != null) raw / 100 else null
+                    batteryUsageValue = extractSignedValueOrNull(t, "mSavedBatteryUsage:")
+                    usage = batteryUsageValue?.takeIf { it >= 0 }?.div(100)
                 }
                 if (batteryDateMs == 0L && t.startsWith("LLB", ignoreCase = true)) {
                     llbRegex.find(t)?.let { m ->
@@ -270,43 +267,11 @@ object BatteryParser {
                     leadingNumber(t, "Maximum capacity:")?.let { measuredCapacityMah = microAhToMah(it) }
                 if (designCapacityMah == null)
                     leadingNumber(t, "Design capacity:")?.let { designCapacityMah = microAhToMah(it) }
-                if (voltageMv == null)
-                    leadingNumber(t, "voltage:")?.takeIf { v -> v > 0 }?.let { voltageMv = it }
-                if (temperatureC == null)
-                    leadingNumber(t, "temperature:")?.let { tenths ->
-                        if (tenths > 0) temperatureC = tenths / 10f
-                    }
-                if (currentNowMa == null)
-                    leadingNumber(t, "current now:")?.let { currentNowMa = currentToMa(it) }
-                if (chargeStatus == null)
-                    leadingNumber(t, "status:")?.takeIf { s -> s in 1..5 }?.let { chargeStatus = it }
-
-                // ── ACTION_BATTERY_CHANGED 인라인 원격 측정 ─────────────────────
-                // 예: voltage:4256, temperature:259, current_avg:1, cc:3864000,
-                //     cycle_count:0, health:2, ac:true, usb:false, wireless:false
-                if (voltageMv == null)
-                    inlineNumber(t, "voltage:")?.takeIf { v -> v > 0 }?.let { voltageMv = it }
-                if (temperatureC == null)
-                    inlineNumber(t, "temperature:")?.let { tenths ->
-                        if (tenths > 0) temperatureC = tenths / 10f
-                    }
-                if (currentNowMa == null)
-                    inlineNumber(t, "current_avg:")?.let { currentNowMa = currentToMa(it) }
+                // ── ACTION_BATTERY_CHANGED 인라인 충전 카운터·사이클 ────────────
                 if (chargeCounterMah == null)
                     inlineNumber(t, "cc:", allowNegative = false)?.let { chargeCounterMah = microAhToMah(it) }
                 if (usage == null)
                     inlineNumber(t, "cycle_count:", allowNegative = false)?.let { usage = it }
-                if (chargeStatus == null)
-                    inlineNumber(t, "status:", allowNegative = false)?.takeIf { s -> s in 1..5 }
-                        ?.let { chargeStatus = it }
-
-                if (t.contains("true")) {
-                    when {
-                        t.startsWith("AC powered:") || t.contains("ac:true") -> powerSource = PowerSource.AC
-                        t.startsWith("USB powered:") || t.contains("usb:true") -> powerSource = PowerSource.USB
-                        t.startsWith("Wireless powered:") || t.contains("wireless:true") -> powerSource = PowerSource.WIRELESS
-                    }
-                }
             }
         }
 
@@ -350,22 +315,20 @@ object BatteryParser {
             healthUnsupported = healthUnsupported,
             cycleCount = usage,
             asocRaw = asocRaw,
+            asocValue = asocValue,
             bsohRaw = bsohRaw,
+            bsohPercent = bsoh?.takeIf { it in 0..100 },
             usageRaw = usageRaw,
+            batteryUsageValue = batteryUsageValue,
             llbType = llbType,
             batteryDateMs = batteryDateMs,
             logFileName = fileName,
             logTimestampMs = logTimestampMs,
             readSuccess = readSuccess,
-            voltageMv = voltageMv,
-            temperatureC = temperatureC,
-            currentNowMa = currentNowMa,
             chargeCounterMah = chargeCounterMah,
             measuredCapacityMah = measuredCapacityMah,
             capacityEstimated = capacityEstimated,
-            designCapacityMah = designCapacityMah,
-            chargeStatus = chargeStatus,
-            powerSource = powerSource
+            designCapacityMah = designCapacityMah
         )
     }
 
@@ -374,10 +337,6 @@ object BatteryParser {
         if (value == null || value <= 0) return null
         return if (value > 20_000) (value / 1000).takeIf { it > 0 } else value
     }
-
-    /** Samsung prints "current now" in mA; Android's µA figures are three digits larger. */
-    private fun currentToMa(value: Int): Int =
-        if (abs(value) > 20_000) value / 1000 else value
 
     /** 정규식 두 개를 줄마다 돌리지 않도록, 날짜가 있을 수 있는 줄만 걸러낸다. */
     private fun looksLikeTimestampLine(t: String): Boolean =
@@ -421,6 +380,10 @@ object BatteryParser {
 
 
     private fun extractValueOrNull(line: String, key: String): Int? {
+        return extractSignedValueOrNull(line, key)?.takeIf { it >= 0 }
+    }
+
+    private fun extractSignedValueOrNull(line: String, key: String): Int? {
         val raw = line.substringAfter(key, "").trim()
         if (raw.isBlank()) return null
         val stripped = when {
@@ -429,7 +392,6 @@ object BatteryParser {
             else -> raw.takeWhile { it.isDigit() || it == '-' }
         }
         if (stripped.equals("unsupported", ignoreCase = true)) return null
-        val v = stripped.toIntOrNull() ?: return null
-        return if (v < 0) null else v
+        return stripped.toIntOrNull()
     }
 }

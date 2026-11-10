@@ -147,12 +147,7 @@ class BatteryRepository(
     fun smartScan(folderUri: Uri, latestEntry: DocEntry): BatteryInfo {
         val cached = BatteryCache.loadCachedBatteryInfo(prefs)
         if (cached != null && cached.logFileName == latestEntry.name) {
-            // 캐시에 핵심 텔레메트리(전압·온도·전류)가 모두 누락돼 있으면,
-            // 파서가 업데이트된 값을 읽어올 수 있도록 재파싱한다.
-            val needsRescan = cached.voltageMv == null &&
-                    cached.temperatureC == null &&
-                    cached.currentNowMa == null
-            if (!needsRescan) return cached
+            return cached
         }
         return parseLatestLog(folderUri, latestEntry)
     }

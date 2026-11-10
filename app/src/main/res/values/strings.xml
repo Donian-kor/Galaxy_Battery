@@ -103,10 +103,24 @@
 
     <!-- Battery health gauge -->
     <string name="gauge_title_soh">배터리 건강도 (ASOC)</string>
+    <string name="gauge_asoc_label">ASOC</string>
+    <string name="gauge_bsoh_label">BSOH</string>
+    <string name="gauge_bsoh_missing">없음</string>
+    <string name="assessment_title">배터리 건강도 판정</string>
+    <string name="assessment_disclaimer">앱 내부 판정 · 삼성 공식 진단 아님</string>
+    <string name="assessment_grade_good">정상</string>
+    <string name="assessment_grade_normal">보통</string>
+    <string name="assessment_grade_weak">주의</string>
+    <string name="assessment_grade_bad">나쁨</string>
+    <string name="assessment_grade_undetermined">판정 불가</string>
+    <string name="assessment_asoc_raw">ASOC 원본값</string>
+    <string name="assessment_usage_raw">Battery Usage 원본값</string>
+    <string name="assessment_converted_cycles">비공식 환산 충전 사이클</string>
+    <string name="assessment_missing_value">없음</string>
     <string name="gauge_percent_sign" translatable="false">%</string>
-    <string name="gauge_scale_low_title">0~59% 위험</string>
+    <string name="gauge_scale_low_title">0~59% 나쁨</string>
     <string name="gauge_scale_low_desc">교체 권고</string>
-    <string name="gauge_scale_mid_title">60~79% 보통</string>
+    <string name="gauge_scale_mid_title">60~79% 주의</string>
     <string name="gauge_scale_mid_desc">성능 저하</string>
     <string name="gauge_scale_high_title">80~100% 정상</string>
     <string name="gauge_scale_high_desc">공장 출하치</string>
@@ -123,23 +137,6 @@
     <string name="capacity_design">신품 배터리 용량: %1$s</string>
     <string name="capacity_delta">%1$s mAh</string>
     <string name="capacity_no_design">신품 용량 정보 없음</string>
-    <string name="telemetry_voltage">배터리 전압</string>
-    <string name="telemetry_temperature">배터리 온도</string>
-    <string name="telemetry_current_charge">충전 전류 유입량</string>
-    <string name="telemetry_current_discharge">소모 전류</string>
-    <string name="telemetry_mv">%1$s mV</string>
-    <string name="telemetry_celsius">%1$s ℃</string>
-    <string name="telemetry_ma">%1$s mA</string>
-    <string name="telemetry_temp_normal">정상</string>
-    <string name="telemetry_temp_warm">높음</string>
-    <string name="telemetry_temp_cold">낮음</string>
-    <string name="telemetry_charging_ac">AC 충전</string>
-    <string name="telemetry_charging_usb">USB 충전</string>
-    <string name="telemetry_charging_wireless">무선 충전</string>
-    <string name="telemetry_full">완충</string>
-    <string name="telemetry_discharging">방전 중</string>
-    <string name="telemetry_no_data" translatable="false">—</string>
-
     <!-- Analysis summary card -->
     <string name="analysis_title_ok">덤프 상태 시스템 로그 정상 분석됨</string>
     <string name="analysis_title_loading">로그 분석 중…</string>
@@ -160,9 +157,6 @@
     <string name="report_design_capacity">설계 용량: %1$s</string>
     <string name="report_measured_capacity">유효 용량: %1$s</string>
     <string name="report_measured_capacity_estimated">추정 유효 용량: %1$s</string>
-    <string name="report_voltage">배터리 전압: %1$s</string>
-    <string name="report_temperature">배터리 온도: %1$s</string>
-    <string name="report_current">전류: %1$s</string>
     <string name="report_log_file">로그 파일: %1$s</string>
     <string name="report_log_time">로그 생성: %1$s</string>
     <string name="report_install_date">배터리 장착일: %1$s</string>

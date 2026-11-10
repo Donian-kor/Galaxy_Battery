@@ -47,6 +47,7 @@ fun GalaxyBatteryTheme(
 @Composable fun refreshIndicatorColor() = appColors().refreshIndicator
 
 @Composable fun gaugeGreen()  = appColors().gaugeGreen
+@Composable fun gaugeYellow() = appColors().gaugeYellow
 @Composable fun gaugeOrange() = appColors().gaugeOrange
 @Composable fun gaugeRed()    = appColors().gaugeRed
 @Composable fun gaugeBlue()   = appColors().gaugeBlue

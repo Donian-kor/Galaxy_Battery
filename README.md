@@ -1,7 +1,7 @@
 # 갤럭시 배터리 정보 (Galaxy Battery)
 
-삼성 덤프스테이트 배터리 로그(`dumpState_*.log`)를 읽어 배터리 건강도(SOH)와
-충전 사이클, 실측 용량, 실시간 텔레메트리를 보여주는 오프라인 진단 앱입니다.
+삼성 덤프스테이트 배터리 로그(`dumpState_*.log`)를 읽어 배터리 건강도(SOH),
+충전 사이클과 용량을 보여주는 오프라인 진단 앱입니다.
 
 - 앱 이름: 갤럭시 배터리 정보
 - 패키지: `com.alyaqdhan.galaxy_battery`
@@ -15,12 +15,10 @@
 
 ## 주요 기능
 
-- **배터리 건강도 게이지**: SOH 백분율과 상태 라벨(새 배터리 / 좋음 / 보통 / 나쁨),
-  산출 기준(ASOC 또는 BSOH) 표시
+- **배터리 건강도 판정**: ASOC와 Battery Usage를 함께 사용하는 앱 내부 판정 등급과
+  원본값을 표시합니다. 환산 사이클은 비공식 값이며 삼성 공식 진단식이 아닙니다.
 - **충전 사이클**: 마모 단계(마모 없음 / 낮음 / 보통 / 높음), 800회 기준 진행률
 - **용량 상태**: 실측 유효 용량(없으면 충전 카운터와 레벨로 추정), 설계 용량 대비 차이
-- **실시간 텔레메트리**: 배터리 전압(mV), 배터리 온도(℃, 정상/높음/낮음),
-  전류(mA, 충전/방전 상태와 AC/USB/무선/완충 라벨)
 - **분석 요약 카드**: 파싱 성공/실패/지원되지 않음 상태와 ASOC·BSOH 원시 값
 - **진단 리포트 내보내기**: 공유 시트로 텍스트 리포트 전송
 - **로그 찾아보기**: 폴더 안의 `dumpState_*.log` 목록, 다른 로그 파일 선택, 원본 배터리 라인 보기(검색 지원)
@@ -35,23 +33,18 @@
 
 | 항목 | 로그 형식 | 의미 |
 | --- | --- | --- |
-| ASOC | `mSavedBatteryAsoc` | 배터리 건강도 기본값 |
-| BSOH | `mSavedBatteryBsoh` | ASOC가 없거나 `[unsupported]`일 때 대체값 |
-| 사이클 | `mSavedBatteryUsage` | 원시 값은 사이클 × 100 (예: `157000` → 1570회) |
+| ASOC | `mSavedBatteryAsoc` | 앱 내부 건강도 판정값 |
+| BSOH | `mSavedBatteryBsoh` | 보조 표시값이며 건강도 판정에는 사용하지 않음 |
+| 사이클 | `mSavedBatteryUsage` | 원시 값은 비공식 사이클 환산값 × 100 (예: `157000` → 1570회) |
 | 배터리 날짜 | `LLB CAL` / `LLB MAN` | 배터리 제조·조립일 |
 | 로그 시각 | `== dumpstate:`, `[YYYY-MM-DD HH:MM:SS]`, 파일명 | 로그 생성 시각(없으면 파일명에서) |
 | 레벨 | `level:` | 현재 충전량(%) |
-| 전압 | `voltage:` / 인라인 `voltage:` | mV |
-| 온도 | `temperature:` / 인라인 `temperature:` | 10분의 1도 단위 (예: `314` → 31.4℃) |
-| 전류 | `current now:` / 인라인 `current_avg:` | mA (µA로 표기된 값은 변환) |
 | 충전 카운터 | `charge counter:` / 인라인 `cc:` | µAh → mAh 변환 |
 | 유효 용량 | `Maximum capacity:` | µAh → mAh 변환, 없으면 카운터와 레벨로 추정 |
 | 설계 용량 | `Design capacity:` | µAh → mAh 변환 |
-| 충전 상태 | `status:` / 인라인 `status:` | 1~5 (알 수 없음/충전/방전/충전 안 함/완충) |
-| 전원 | `AC powered:` 등 / 인라인 `ac:true` 등 | AC / USB / 무선 |
 
-인라인 형식은 배터리 서비스 로그의 `ACTION_BATTERY_CHANGED` 줄에서 읽습니다.
-예: `... voltage:4089, temperature:227, cycle_count:0, current_avg:-562, cc:3643752, ac:false, usb:false, wireless:false`
+인라인 사이클 및 충전 카운터 형식은 배터리 서비스 로그의 `ACTION_BATTERY_CHANGED` 줄에서 읽습니다.
+예: `... cycle_count:0, cc:3643752`
 
 ## 기술 스택
 
