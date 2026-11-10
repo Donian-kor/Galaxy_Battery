@@ -114,7 +114,7 @@
     <string name="gauge_scale_low_desc">교체 권고</string>
     <string name="gauge_scale_mid_title">60~89% 보통</string>
     <string name="gauge_scale_mid_desc">성능 저하</string>
-    <string name="gauge_scale_high_title">90~100% 설계</string>
+    <string name="gauge_scale_high_title">90~100% 정상</string>
     <string name="gauge_scale_high_desc">공장 출하치</string>
     <string name="gauge_parser_caption">배터리 서비스 덤프 · %1$s 파서</string>
 
