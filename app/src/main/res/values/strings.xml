@@ -88,11 +88,6 @@
         <item quantity="one">회</item>
         <item quantity="other">회</item>
     </plurals>
-    <string name="wear_none">마모 없음</string>
-    <string name="wear_low">낮은 마모</string>
-    <string name="wear_moderate">보통 마모</string>
-    <string name="wear_high">높은 마모</string>
-    <string name="wear_unavailable">사용 불가</string>
 
     <!-- Dashboard header and battery meta ribbon -->
     <string name="battery_installed_on">배터리 장착: %1$s</string>
@@ -107,19 +102,17 @@
     <string name="log_pill_loading">로그 분석 중…</string>
 
     <!-- Battery health gauge -->
-    <string name="gauge_title_soh">배터리 건강도 (SOH)</string>
-    <string name="gauge_source_chip" translatable="false">SEC_GAUGE_%1$s</string>
+    <string name="gauge_title_soh">배터리 건강도 (ASOC)</string>
     <string name="gauge_percent_sign" translatable="false">%</string>
     <string name="gauge_scale_low_title">0~59% 위험</string>
     <string name="gauge_scale_low_desc">교체 권고</string>
-    <string name="gauge_scale_mid_title">60~89% 보통</string>
+    <string name="gauge_scale_mid_title">60~79% 보통</string>
     <string name="gauge_scale_mid_desc">성능 저하</string>
-    <string name="gauge_scale_high_title">90~100% 정상</string>
+    <string name="gauge_scale_high_title">80~100% 정상</string>
     <string name="gauge_scale_high_desc">공장 출하치</string>
     <string name="gauge_parser_caption">배터리 서비스 덤프 · %1$s 파서</string>
 
     <!-- Telemetry card -->
-    <string name="telemetry_title">충전 횟수 및 용량 상태</string>
     <string name="cycles_metric_title">총 충전 사이클</string>
     <string name="cycles_metric_unit">회 충전</string>
     <string name="cycles_progress">진행 %1$s%%</string>
@@ -130,7 +123,6 @@
     <string name="capacity_design">신품 배터리 용량: %1$s</string>
     <string name="capacity_delta">%1$s mAh</string>
     <string name="capacity_no_design">신품 용량 정보 없음</string>
-    <string name="wear_normal">정상 열화 상태</string>
     <string name="telemetry_voltage">배터리 전압</string>
     <string name="telemetry_temperature">배터리 온도</string>
     <string name="telemetry_current_charge">충전 전류 유입량</string>
@@ -154,12 +146,7 @@
     <string name="analysis_title_failed">로그 분석 완료 · 배터리 값 없음</string>
     <string name="analysis_badge_ok">분석 완료</string>
     <string name="analysis_badge_wait">대기</string>
-    <string name="analysis_body_loading">배터리 드라이버 레지스터 라인 파싱 진행 중</string>
-    <string name="analysis_body_ok">배터리 로그 파싱 완료 · %1$s 기준 SOH 산출</string>
-    <string name="analysis_body_unsupported">배터리 로그 파싱 완료 · 이 기기는 SOH 값을 보고하지 않습니다</string>
-    <string name="analysis_body_failed">로그에서 배터리 상태 값을 찾지 못했습니다</string>
     <string name="analysis_raw">ASOC: %1$s · BSOH: %2$s</string>
-    <string name="analysis_parser_source" translatable="false">배터리 서비스 덤프 · SEC_GAUGE_%1$s 파서</string>
     <string name="analysis_no_error">파싱 오류 없음</string>
     <string name="analysis_error">오류: %1$s</string>
 

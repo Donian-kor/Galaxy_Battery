@@ -14,6 +14,8 @@ object BatteryCache {
             putString ("cache_health_source",      info.healthSource)
             putBoolean("cache_health_unsupported", info.healthUnsupported)
             putInt    ("cache_cycle_count",         info.cycleCount ?: -1)
+            putString ("cache_asoc_raw",            info.asocRaw)
+            putString ("cache_bsoh_raw",            info.bsohRaw)
             putLong   ("cache_battery_date_ms",  info.batteryDateMs)
             putInt    ("cache_voltage_mv",          info.voltageMv ?: -1)
             putFloat  ("cache_temperature_c",       info.temperatureC ?: -999f)
@@ -36,6 +38,8 @@ object BatteryCache {
             healthSource      = prefs.getString("cache_health_source", "") ?: "",
             healthUnsupported = prefs.getBoolean("cache_health_unsupported", false),
             cycleCount        = prefs.getInt("cache_cycle_count", -1).takeIf { it >= 0 },
+            asocRaw           = prefs.getString("cache_asoc_raw", "") ?: "",
+            bsohRaw           = prefs.getString("cache_bsoh_raw", "") ?: "",
             batteryDateMs    = prefs.getLong("cache_battery_date_ms", 0L),
             logFileName       = fileName,
             logTimestampMs    = prefs.getLong("cache_log_timestamp_ms", 0L),
@@ -62,6 +66,8 @@ object BatteryCache {
             remove("cache_health_source")
             remove("cache_health_unsupported")
             remove("cache_cycle_count")
+            remove("cache_asoc_raw")
+            remove("cache_bsoh_raw")
             remove("cache_battery_date_ms")
             remove("cache_voltage_mv")
             remove("cache_temperature_c")
