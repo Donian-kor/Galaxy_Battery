@@ -140,8 +140,7 @@ fun HealthGaugeCard(
         targetValue = when {
             isLoadingDetail   -> gaugeBlue()
             isUnsupported     -> gaugeGray()
-            animPct >= 99.9f  -> gaugeBlue()
-            animPct >= 80f    -> gaugeGreen()
+            animPct >= 90f    -> gaugeGreen()
             animPct >= 60f    -> gaugeOrange()
             else              -> gaugeRed()
         },
@@ -160,20 +159,11 @@ fun HealthGaugeCard(
         }
     )
 
-    // The design's chip names the gauge source. We only show the source the log actually
-    // carried, never a made-up chip revision.
-    val source = when {
-        isLoadingDetail                  -> "…"
-        info.healthSource.isNotBlank()   -> info.healthSource.uppercase(Locale.US)
-        else                             -> "—"
-    }
-
-    val muted  = textMuted()
     val border = cardBorderColor()
     val inset  = appColors().inset
 
     DashboardCard(glow = true) {
-        // Header: live dot + title + source chip
+        // Header: live dot + title only (source chip moved to bottom analysis card)
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -182,31 +172,11 @@ fun HealthGaugeCard(
             Spacer(Modifier.width(8.dp))
             Text(
                 stringResource(R.string.gauge_title_soh),
-                color = muted,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.sp
-                ),
+                color = textPrimary(),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                 maxLines = 1,
                 modifier = Modifier.weight(1f)
             )
-            Spacer(Modifier.width(8.dp))
-            Surface(
-                shape  = CircleShape,
-                color  = inset,
-                border = BorderStroke(1.dp, gaugeColor.copy(alpha = 0.4f))
-            ) {
-                Text(
-                    stringResource(R.string.gauge_source_chip, source),
-                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
-                    color = gaugeColor,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    maxLines = 1
-                )
-            }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -274,25 +244,6 @@ fun HealthGaugeCard(
         }
 
         Spacer(Modifier.height(4.dp))
-
-        // Parser caption
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painterResource(R.drawable.ic_sym_memory),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                stringResource(R.string.gauge_parser_caption, source),
-                color = muted,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
         Spacer(Modifier.height(16.dp))
         HorizontalDivider(color = border.copy(alpha = 0.6f))
         Spacer(Modifier.height(12.dp))
@@ -541,7 +492,11 @@ fun TelemetryCard(
                 else cyclesAnim.value.toInt().toString(),
                 unit     = stringResource(R.string.cycles_metric_unit),
                 fraction = if (isLoadingDetail) 0f else cyclesFraction,
-                barColor = gaugeGreen(),
+                barColor = when {
+                    cyclesFraction < 0.6f -> gaugeGreen()
+                    cyclesFraction < 0.9f -> gaugeOrange()
+                    else                  -> gaugeRed()
+                },
                 footerStart = if (isLoadingDetail) "…"
                 else stringResource(
                     R.string.cycles_progress,
@@ -560,6 +515,11 @@ fun TelemetryCard(
                 else ->
                     0f
             }
+            val capacityBarColor = when {
+                capacityFraction >= 0.9f -> gaugeGreen()
+                capacityFraction >= 0.6f -> gaugeOrange()
+                else                     -> gaugeRed()
+            }
             val delta = if (measured != null && design != null) measured - design else null
 
             val capText = if (isLoadingDetail || measured == null) "—"
@@ -575,7 +535,7 @@ fun TelemetryCard(
                 secondaryValue = null,
                 unit           = stringResource(R.string.capacity_unit),
                 fraction       = if (isLoadingDetail) 0f else capacityFraction,
-                barColor       = gaugeBlue(),
+                barColor       = capacityBarColor,
                 footerStart    = when {
                     isLoadingDetail -> "…"
                     design != null  -> stringResource(R.string.capacity_design, design.groupedDigits())
@@ -932,15 +892,6 @@ fun LogSummaryCard(
             else               -> R.string.analysis_title_failed
         }
     )
-    val body = when {
-        isLoadingDetail      -> stringResource(R.string.analysis_body_loading)
-        info.healthUnsupported -> stringResource(R.string.analysis_body_unsupported)
-        info.readSuccess     -> stringResource(
-            R.string.analysis_body_ok,
-            info.healthSource.ifBlank { "—" }.uppercase(Locale.US)
-        )
-        else -> stringResource(R.string.analysis_body_failed)
-    }
     val footerEnd = when {
         isLoadingDetail          -> "…"
         info.readSuccess         -> stringResource(R.string.analysis_no_error)
@@ -1004,18 +955,36 @@ fun LogSummaryCard(
                         }
                     }
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
+                // 1. 배터리 건강도 (SOH) 라벨 + 수치
                 Text(
-                    body,
+                    when {
+                        isLoadingDetail -> stringResource(R.string.analysis_body_loading)
+                        info.healthUnsupported -> stringResource(R.string.analysis_body_unsupported)
+                        info.readSuccess -> {
+                            val pct = info.healthPercent ?: 0
+                            "배터리 건강도 (SOH): ${pct}% · 출처: ${info.healthSource.ifBlank { "ASOC" }.uppercase(Locale.US)}"
+                        }
+                        else -> stringResource(R.string.analysis_body_failed)
+                    },
                     color = textSecondary(),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(Modifier.height(4.dp))
-                val source = if (info.healthSource.isNotBlank()) info.healthSource.uppercase(Locale.US) else "—"
+                // 2. SEC_GAUGE_ASOC 출처 칩
                 Text(
-                    stringResource(R.string.analysis_parser_source, source),
+                    stringResource(R.string.gauge_source_chip, info.healthSource.ifBlank { "ASOC" }.uppercase(Locale.US)),
                     color = muted,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(4.dp))
+                // 3. 배터리 서비스 덤프 파서 명시
+                Text(
+                    stringResource(R.string.analysis_parser_source, info.healthSource.ifBlank { "ASOC" }.uppercase(Locale.US)),
+                    color = muted,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

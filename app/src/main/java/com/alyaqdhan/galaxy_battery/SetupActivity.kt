@@ -103,15 +103,6 @@ class SetupActivity : ComponentActivity() {
                         showBackButton          = showBack,
                         onPickFolder            = { folderPicker.launch(null) },
                         onOpenSettings          = { openAppSettings() },
-                        onRemoveAccess          = {
-                            viewModel.removeFolderAccess()
-                            // The Dashboard has nothing left to show, so start over from first run.
-                            startActivity(
-                                Intent(this@SetupActivity, SetupActivity::class.java)
-                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                            )
-                            finish()
-                        },
                         onClearDataAndReload = {
                             viewModel.clearAllData(keepUri = false)
                             // After clearing, re-pick the log folder so the user can reload their data.

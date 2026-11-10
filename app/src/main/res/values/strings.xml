@@ -110,11 +110,11 @@
     <string name="gauge_title_soh">배터리 건강도 (SOH)</string>
     <string name="gauge_source_chip" translatable="false">SEC_GAUGE_%1$s</string>
     <string name="gauge_percent_sign" translatable="false">%</string>
-    <string name="gauge_scale_low_title">0% 위험</string>
+    <string name="gauge_scale_low_title">0~59% 위험</string>
     <string name="gauge_scale_low_desc">교체 권고</string>
-    <string name="gauge_scale_mid_title">50% 보통</string>
+    <string name="gauge_scale_mid_title">60~89% 보통</string>
     <string name="gauge_scale_mid_desc">성능 저하</string>
-    <string name="gauge_scale_high_title">100% 설계</string>
+    <string name="gauge_scale_high_title">90~100% 설계</string>
     <string name="gauge_scale_high_desc">공장 출하치</string>
     <string name="gauge_parser_caption">배터리 서비스 덤프 · %1$s 파서</string>
 
@@ -201,7 +201,7 @@
     <!-- Clear data & reload -->
     <string name="clear_data_title">저장 공간 삭제 및 폴더 다시 불러오기</string>
     <string name="clear_data_body">저장된 배터리 정보, 로그 폴더 권한, 캐시를 모두 삭제합니다. 다시 로그 폴더를 선택해야 배터리 정보를 볼 수 있습니다.</string>
-    <string name="clear_data_confirm">삭제하고 폴더 다시 선택</string>
+    <string name="clear_data_confirm">저장된 캐시 삭제 및 폴더 선택</string>
     <string name="clear_data_cancel">취소</string>
 
     <!-- Error dialogs -->

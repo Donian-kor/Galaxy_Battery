@@ -110,11 +110,11 @@
     <string name="gauge_title_soh">Battery Health (SOH)</string>
     <string name="gauge_source_chip" translatable="false">SEC_GAUGE_%1$s</string>
     <string name="gauge_percent_sign" translatable="false">%</string>
-    <string name="gauge_scale_low_title">0% Danger</string>
+    <string name="gauge_scale_low_title">0~59% Danger</string>
     <string name="gauge_scale_low_desc">Replacement recommended</string>
-    <string name="gauge_scale_mid_title">50% Normal</string>
+    <string name="gauge_scale_mid_title">60~89% Normal</string>
     <string name="gauge_scale_mid_desc">Performance degraded</string>
-    <string name="gauge_scale_high_title">100% Design</string>
+    <string name="gauge_scale_high_title">90~100% Design</string>
     <string name="gauge_scale_high_desc">Factory default</string>
     <string name="gauge_parser_caption">Battery service dump · %1$s parser</string>
 
@@ -201,7 +201,7 @@
     <!-- Clear data & reload -->
     <string name="clear_data_title">Clear storage and reload log folder</string>
     <string name="clear_data_body">Deletes all cached battery info, log folder permission, and cache. You must select the log folder again to view battery data.</string>
-    <string name="clear_data_confirm">Delete and select folder again</string>
+    <string name="clear_data_confirm">Delete saved cache and select folder</string>
     <string name="clear_data_cancel">Cancel</string>
 
     <!-- Error dialogs -->

@@ -12,6 +12,9 @@ import java.util.Locale
 
 internal data class TimeAgo(@param:PluralsRes val plural: Int, val count: Int)
 
+/** 숫자 문자열을 그대로 반환 (아랍어 숫자 변환 제거됨) */
+fun String.localDigits(): String = this
+
 /** Returns null when the difference is under a minute ("just now"). */
 internal fun timeAgo(diffMs: Long): TimeAgo? {
     val mins   = diffMs / 60_000

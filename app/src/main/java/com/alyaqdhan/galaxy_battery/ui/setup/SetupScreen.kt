@@ -41,14 +41,12 @@ fun SetupScreen(
     showBackButton: Boolean,
     onPickFolder: () -> Unit,
     onOpenSettings: () -> Unit,
-    onRemoveAccess: () -> Unit,
     onClearDataAndReload: () -> Unit,
     onBack: () -> Unit,
     onDialCode: () -> Unit
 ) {
     var showEditDialog   by remember { mutableStateOf(false) }
     var editCodeDraft    by remember { mutableStateOf("") }
-    var showRemoveDialog by remember { mutableStateOf(false) }
     var showClearDialog  by remember { mutableStateOf(false) }
 
     val dialCodeLabel = viewModel.dialCode
@@ -80,8 +78,6 @@ fun SetupScreen(
                     FolderAccess(
                         isScanning          = isScanning,
                         onOpenSettings      = onOpenSettings,
-                        onChangeFolder      = onPickFolder,
-                        onRemoveAccess      = { showRemoveDialog = true },
                         onClearDataAndReload = { showClearDialog = true }
                     )
                 }
@@ -95,7 +91,6 @@ fun SetupScreen(
     val tp                = textPrimary()
     val ts                = textSecondary()
     val muted             = MaterialTheme.colorScheme.onSurfaceVariant
-    val error             = MaterialTheme.colorScheme.error
     val cardActionStyle   = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
 
     // Show error dialogs (wrong folder, etc.)
@@ -243,31 +238,7 @@ fun SetupScreen(
         }
     }
 
-    // ── Remove access dialog ──────────────────────────────────────────────────
-    if (showRemoveDialog) {
-        AlertDialog(
-            onDismissRequest = { showRemoveDialog = false },
-            title = { Text(stringResource(R.string.remove_access_title)) },
-            text  = { Text(stringResource(R.string.remove_access_body)) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showRemoveDialog = false
-                        onRemoveAccess()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = error,
-                        contentColor   = MaterialTheme.colorScheme.onError
-                    )
-                ) {
-                    Text(stringResource(R.string.remove_access_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRemoveDialog = false }) { Text(stringResource(R.string.action_cancel)) }
-            }
-        )
-    }
+
 
     // ── Clear data dialog ─────────────────────────────────────────────────────
     if (showClearDialog) {

@@ -260,8 +260,6 @@ private fun DialCodeButton(label: String, onDial: () -> Unit, onEdit: () -> Unit
 fun FolderAccess(
     isScanning: Boolean,
     onOpenSettings: () -> Unit,
-    onChangeFolder: () -> Unit,
-    onRemoveAccess: () -> Unit,
     onClearDataAndReload: () -> Unit
 ) {
     val green         = accentGreenEffective()
@@ -304,45 +302,16 @@ fun FolderAccess(
             }
         }
         Spacer(Modifier.height(10.dp))
-        Column(
-            Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        OutlinedButton(
+            onClick        = onClearDataAndReload,
+            enabled        = !isScanning,
+            modifier       = Modifier.fillMaxWidth().heightIn(min = 44.dp),
+            shape          = RoundedCornerShape(12.dp),
+            contentPadding = buttonPadding,
+            border         = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = if (isScanning) 0.3f else 0.6f)),
+            colors         = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
         ) {
-            Button(
-                onClick        = onChangeFolder,
-                enabled        = !isScanning,
-                modifier       = Modifier.fillMaxWidth().heightIn(min = 44.dp),
-                shape          = RoundedCornerShape(12.dp),
-                contentPadding = buttonPadding,
-                colors         = ButtonDefaults.buttonColors(
-                    containerColor = green,
-                    contentColor   = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(stringResource(R.string.setup_change_folder), style = actionStyle, textAlign = TextAlign.Center)
-            }
-            OutlinedButton(
-                onClick        = onRemoveAccess,
-                enabled        = !isScanning,
-                modifier       = Modifier.fillMaxWidth().heightIn(min = 44.dp),
-                shape          = RoundedCornerShape(12.dp),
-                contentPadding = buttonPadding,
-                border         = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = if (isScanning) 0.3f else 0.6f)),
-                colors         = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text(stringResource(R.string.setup_remove_access), style = actionStyle, textAlign = TextAlign.Center)
-            }
-            OutlinedButton(
-                onClick        = onClearDataAndReload,
-                enabled        = !isScanning,
-                modifier       = Modifier.fillMaxWidth().heightIn(min = 44.dp),
-                shape          = RoundedCornerShape(12.dp),
-                contentPadding = buttonPadding,
-                border         = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = if (isScanning) 0.3f else 0.6f)),
-                colors         = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text(stringResource(R.string.clear_data_confirm), style = actionStyle, textAlign = TextAlign.Center)
-            }
+            Text(stringResource(R.string.clear_data_confirm), style = actionStyle, textAlign = TextAlign.Center)
         }
     }
 }
