@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 import com.alyaqdhan.galaxy_battery.data.BatteryRepository
+import com.alyaqdhan.galaxy_battery.viewmodel.FolderState
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -26,11 +27,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val repository = BatteryRepository(context, prefs)
 
     // ── Shared app state ──────────────────────────────────────────────────────
-    var folderUri        by mutableStateOf<Uri?>(null)           ; private set
-    var alreadyHasPerm   by mutableStateOf(false)                ; private set
+    var folderState      by mutableStateOf(FolderState())        ; private set
     var batteryInfo      by mutableStateOf<BatteryInfo?>(null)   ; private set
-    var folderAccessible by mutableStateOf(true)                 ; private set
-    var hasEverScanned   by mutableStateOf(false)                ; private set
+
+    var folderUri: Uri?
+        get() = folderState.folderUri
+        private set(value) { folderState = folderState.copy(folderUri = value) }
+    var alreadyHasPerm: Boolean
+        get() = folderState.alreadyHasPerm
+        private set(value) { folderState = folderState.copy(alreadyHasPerm = value) }
+    var folderAccessible: Boolean
+        get() = folderState.folderAccessible
+        private set(value) { folderState = folderState.copy(folderAccessible = value) }
+    var hasEverScanned: Boolean
+        get() = folderState.hasEverScanned
+        private set(value) { folderState = folderState.copy(hasEverScanned = value) }
     var isRefreshing     by mutableStateOf(false)                ; private set
     var isLoadingDetail  by mutableStateOf(false)                ; private set
 
