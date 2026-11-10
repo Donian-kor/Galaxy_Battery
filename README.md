@@ -94,6 +94,7 @@ app/src/main/java/com/alyaqdhan/galaxy_battery/
 ├── BatteryParser.kt         # 로그 파싱(Android 의존 없는 순수 로직)
 ├── BatteryCache.kt          # SharedPreferences 기반 결과 캐시
 ├── BatteryModels.kt         # BatteryInfo, DocEntry, ErrorDialog
+├── BatteryHealth.kt         # 앱 내부 배터리 건강도 판정 로직(비공식)
 ├── BatteryReport.kt         # 공유용 진단 리포트 텍스트 생성
 ├── GaugeComponents.kt       # 게이지·메트릭 타일·텔레메트리 행
 ├── SetupComponents.kt       # 설정 화면 구성 요소
