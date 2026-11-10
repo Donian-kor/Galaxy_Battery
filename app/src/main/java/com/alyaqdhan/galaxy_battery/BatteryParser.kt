@@ -32,13 +32,15 @@ object BatteryParser {
         return "dumpstate_$model"
     }
 
+    private val timestampFormat = ThreadLocal.withInitial { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US) }
+
     fun extractTimestampFromFileName(name: String): Long {
         val match = Regex("""(\d{12})""").find(name) ?: return 0L
         val f = match.groupValues[1]
         val str = "${f.substring(0, 4)}-${f.substring(4, 6)}-${f.substring(6, 8)} " +
                 "${f.substring(8, 10)}:${f.substring(10, 12)}:00"
         return try {
-            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).parse(str)?.time ?: 0L
+            timestampFormat.get()!!.parse(str)?.time ?: 0L
         } catch (_: Exception) { 0L }
     }
 
