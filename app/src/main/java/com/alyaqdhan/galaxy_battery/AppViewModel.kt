@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 
 import com.alyaqdhan.galaxy_battery.data.BatteryRepository
 import com.alyaqdhan.galaxy_battery.viewmodel.FolderState
+import com.alyaqdhan.galaxy_battery.viewmodel.DialCodeViewModel
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -62,13 +63,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var gaugeReplayKey by mutableIntStateOf(0) ; private set
 
     // ── Dial code ─────────────────────────────────────────────────────────────
-    var dialCode by mutableStateOf(prefs.getString("dial_code", "*#9900") ?: "*#9900") ; private set
+    private val dialCodeVm = DialCodeViewModel(getApplication())
 
-    fun saveDialCode(code: String) {
-        // An Arabic keyboard can type Eastern digits, but the dialer needs Western ones.
-        dialCode = code.toWesternDigits().ifBlank { "*#9900" }
-        prefs.edit { putString("dial_code", dialCode) }
-    }
+    val dialCode: String get() = dialCodeVm.dialCode
+
+    fun saveDialCode(code: String) = dialCodeVm.saveDialCode(code)
 
     // ── Initialization ────────────────────────────────────────────────────────
 
