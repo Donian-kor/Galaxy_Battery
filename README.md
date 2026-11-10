@@ -137,10 +137,11 @@ UI 테스트는 `SetupScreenUiTest`가 설정 화면의 버튼과 앱 이름을 
 
 이 프로젝트는 [Alyaqdhans/MyBattery](https://github.com/Alyaqdhans/MyBattery) 저장소를 참고하여 개발되었습니다.
 
-이 저장소는 별도 [LICENSE](LICENSE) 파일의 조건을 따릅니다.
+이 저장소는 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International) 라이선스를 따르며, 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
 
-- **상업적 이용 금지**: 본 소프트웨어의 전부 또는 일부를 상업적 목적으로 이용할 수 없습니다.
-- **소스 코드 공개 의무**: 본 소프트웨어의 전부 또는 일부를 사용·수정·포함한 저작물(파생물 포함)을 배포·공개·제공하는 경우, 해당 소스 코드를 **동일한 라이선스 조건으로 공개**해야 합니다.
+- **저작자 표시 (BY)**: 원저작자 및 출처를 표시해야 합니다.
+- **비상업적 이용 (NC)**: 본 소프트웨어의 전부 또는 일부를 상업적 목적으로 이용할 수 없습니다.
+- **동일조건변경허락 (SA)**: 본 소프트웨어의 전부 또는 일부를 사용·수정·포함한 저작물(파생물 포함)을 배포·공개·제공하는 경우, 해당 소스 코드를 **동일한 라이선스(CC BY-NC-SA 4.0) 조건으로 공개**해야 합니다.
 
 앱은 기기 로그를 읽기만 하며 원본 파일을 수정하지 않습니다.
 
