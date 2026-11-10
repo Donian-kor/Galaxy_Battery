@@ -10,31 +10,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-private const val ARABIC_ZERO = '٠'
-private const val ARABIC_NINE = '٩'
-
-fun String.toArabicDigits(): String =
-    buildString(length) {
-        for (c in this@toArabicDigits) append(if (c in '0'..'9') ARABIC_ZERO + (c - '0') else c)
-    }
-
-fun String.toWesternDigits(): String =
-    buildString(length) {
-        for (c in this@toWesternDigits) append(if (c in ARABIC_ZERO..ARABIC_NINE) '0' + (c - ARABIC_ZERO) else c)
-    }
-
-@Composable
-fun isArabicUi(): Boolean = LocalConfiguration.current.locales[0].language == "ar"
-
-/**
- * Digits the app writes itself. Arabic always gets Eastern Arabic numerals, even in regions whose
- * locale defaults to Western ones (UAE, Morocco…), so don't rely on the locale's own formatting.
- *
- * Leave file names and log text alone: those are literal data the user may need to match.
- */
-@Composable
-fun String.localDigits(): String = if (isArabicUi()) toArabicDigits() else this
-
 internal data class TimeAgo(@param:PluralsRes val plural: Int, val count: Int)
 
 /** Returns null when the difference is under a minute ("just now"). */
@@ -60,12 +35,11 @@ fun relativeTimeText(timestampMs: Long): String {
     if (timestampMs == 0L) return ""
     val ago = timeAgo(System.currentTimeMillis() - timestampMs)
         ?: return stringResource(R.string.time_just_now)
-    return pluralStringResource(ago.plural, ago.count, ago.count).localDigits()
+    return pluralStringResource(ago.plural, ago.count, ago.count)
 }
 
-/** A telemetry number with thousands separators, in the UI's own digits. */
-@Composable
-fun Int.groupedDigits(): String = String.format(Locale.US, "%,d", this).localDigits()
+/** A telemetry number with thousands separators. */
+fun Int.groupedDigits(): String = String.format(Locale.US, "%,d", this)
 
 /** Whole months since [dateMs], or null when the log didn't report a date. */
 internal fun monthsSince(dateMs: Long): Int? {
@@ -82,7 +56,7 @@ internal fun monthsSince(dateMs: Long): Int? {
 @Composable
 fun logMomentText(timestampMs: Long): String {
     if (timestampMs == 0L) return ""
-    val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(timestampMs)).localDigits()
+    val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(timestampMs))
     val now  = Calendar.getInstance()
     val then = Calendar.getInstance().apply { timeInMillis = timestampMs }
 
@@ -95,19 +69,20 @@ fun logMomentText(timestampMs: Long): String {
         yesterday.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
     ) return stringResource(R.string.log_moment_yesterday, time)
 
-    val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(timestampMs)).localDigits()
+    val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(timestampMs))
     return stringResource(R.string.log_moment_date, date, time)
 }
 
-internal fun formatBatteryDate(dateMs: Long, arabic: Boolean): String {
+/** [korean]이면 "2024년 1월 5일", 아니면 "5/1/2024". */
+internal fun formatBatteryDate(dateMs: Long, korean: Boolean = false): String {
     if (dateMs == 0L) return ""
-    // The right-to-left marks stop the digits and slashes merging into one left-to-right number,
-    // so the day still comes first for someone reading from the right.
-    val pattern = if (arabic) "d‏/M‏/yyyy" else "d/M/yyyy"
-    val date    = SimpleDateFormat(pattern, Locale.US).format(Date(dateMs))
-    return if (arabic) date.toArabicDigits() else date
+    val pattern = if (korean) "yyyy년 M월 d일" else "d/M/yyyy"
+    return SimpleDateFormat(pattern, Locale.US).format(Date(dateMs))
 }
 
 /** The battery install date, or an empty string when the log didn't have one (0). */
 @Composable
-fun batteryDateText(dateMs: Long): String = formatBatteryDate(dateMs, isArabicUi())
+fun batteryDateText(dateMs: Long): String {
+    val korean = LocalConfiguration.current.locales[0].language == "ko"
+    return formatBatteryDate(dateMs, korean)
+}

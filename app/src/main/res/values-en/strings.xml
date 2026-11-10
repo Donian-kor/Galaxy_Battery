@@ -124,15 +124,15 @@
     <string name="cycles_metric_unit">cycles charged</string>
     <string name="cycles_progress">Progress %1$s%%</string>
     <string name="cycles_warranty">%1$s cycle reference</string>
-    <string name="capacity_metric_title">Measured Effective Capacity</string>
-    <string name="capacity_metric_title_estimated">Estimated Effective Capacity</string>
+    <string name="capacity_metric_title">Current Max Battery Capacity</string>
+    <string name="capacity_metric_title_estimated">Current Max Battery Capacity</string>
     <string name="capacity_unit" translatable="false">mAh</string>
-    <string name="capacity_design">Design: %1$s</string>
+    <string name="capacity_design">New Battery Capacity: %1$s</string>
     <string name="capacity_delta">%1$s mAh</string>
-    <string name="capacity_no_design">No design info</string>
+    <string name="capacity_no_design">No new battery info</string>
     <string name="wear_normal">Normal degradation</string>
-    <string name="telemetry_voltage">Pack Terminal Voltage</string>
-    <string name="telemetry_temperature">Battery Core Temperature</string>
+    <string name="telemetry_voltage">Battery Voltage</string>
+    <string name="telemetry_temperature">Battery Temperature</string>
     <string name="telemetry_current_charge">Charging Current Inflow</string>
     <string name="telemetry_current_discharge">Consumption Current</string>
     <string name="telemetry_mv">%1$s mV</string>
@@ -156,8 +156,10 @@
     <string name="analysis_badge_wait">Waiting</string>
     <string name="analysis_body_loading">Parsing battery driver register lines in progress</string>
     <string name="analysis_body_ok">Battery log parsing complete · SOH verified based on %1$s</string>
+    <string name="analysis_body_unsupported">Battery log parsing complete · This device does not report SOH values</string>
     <string name="analysis_body_failed">Could not find battery status values in log</string>
     <string name="analysis_raw">ASOC: %1$s · BSOH: %2$s</string>
+    <string name="analysis_parser_source" translatable="false">Battery service dump · SEC_GAUGE_%1$s parser</string>
     <string name="analysis_no_error">No parsing errors</string>
     <string name="analysis_error">Error: %1$s</string>
 
@@ -171,8 +173,8 @@
     <string name="report_design_capacity">Design Capacity: %1$s</string>
     <string name="report_measured_capacity">Effective Capacity: %1$s</string>
     <string name="report_measured_capacity_estimated">Estimated Effective Capacity: %1$s</string>
-    <string name="report_voltage">Pack Terminal Voltage: %1$s</string>
-    <string name="report_temperature">Battery Core Temperature: %1$s</string>
+    <string name="report_voltage">Battery Voltage: %1$s</string>
+    <string name="report_temperature">Battery Temperature: %1$s</string>
     <string name="report_current">Current: %1$s</string>
     <string name="report_log_file">Log File: %1$s</string>
     <string name="report_log_time">Log Created: %1$s</string>

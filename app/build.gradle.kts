@@ -38,9 +38,9 @@ android {
     }
 
     androidResources {
-        // Drop the libraries' other languages, or a Hebrew phone would count as supported
-        // and show the English text in a mirrored layout.
-        localeFilters += listOf("en", "ar")
+        // Drop the libraries' other languages, or an unsupported phone would show
+        // the wrong text. The app itself only ships Korean (default) and English.
+        localeFilters += listOf("en")
     }
 }
 

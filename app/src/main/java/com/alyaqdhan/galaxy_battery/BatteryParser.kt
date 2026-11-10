@@ -34,6 +34,76 @@ object BatteryParser {
         return "dumpstate_$model"
     }
 
+    fun lookupDesignCapacity(modelOrFileName: String): Int? {
+        val upper = modelOrFileName.uppercase(Locale.US)
+        return when {
+            // Fold series
+            upper.contains("F966") || upper.contains("F960") -> 4400 // Fold 7
+            upper.contains("F976") || upper.contains("F970") -> 4400 // Fold 8
+            upper.contains("F926") -> 4400 // Fold 3
+            upper.contains("F936") -> 4400 // Fold 4
+            upper.contains("F946") -> 4400 // Fold 5
+            upper.contains("F956") -> 4400 // Fold 6
+            upper.contains("F900") || upper.contains("F907") -> 4380 // Fold 1
+            upper.contains("F916") -> 4500 // Fold 2
+
+            // Flip series
+            upper.contains("F751") || upper.contains("F750") -> 4000 // Flip 7
+            upper.contains("F761") || upper.contains("F760") -> 4000 // Flip 8
+            upper.contains("F700") || upper.contains("F707") -> 3300 // Flip 1
+            upper.contains("F711") -> 3300 // Flip 3
+            upper.contains("F721") -> 3700 // Flip 4
+            upper.contains("F731") -> 3700 // Flip 5
+            upper.contains("F741") -> 4000 // Flip 6
+
+            // S26 series
+            upper.contains("S941") -> 4000
+            upper.contains("S946") -> 4900
+            upper.contains("S948") -> 5000
+
+            // S25 series
+            upper.contains("S931") -> 4000
+            upper.contains("S936") -> 4900
+            upper.contains("S938") -> 5000
+
+            // S23 series
+            upper.contains("S911") -> 3900
+            upper.contains("S916") -> 4700
+            upper.contains("S918") -> 5000
+            upper.contains("S711") -> 4500
+
+            // S22 series
+            upper.contains("S901") -> 3700
+            upper.contains("S906") -> 4500
+            upper.contains("S908") -> 5000
+
+            // S21 series
+            upper.contains("G991") -> 4000
+            upper.contains("G996") -> 4800
+            upper.contains("G998") -> 5000
+            upper.contains("G990") -> 4500
+
+            // S20 series
+            upper.contains("G981") || upper.contains("G980") -> 4000
+            upper.contains("G986") || upper.contains("G985") -> 4500
+            upper.contains("G988") -> 5000
+            upper.contains("G781") || upper.contains("G780") -> 4500
+
+            // Note series
+            upper.contains("N970") -> 3500 // Note 10
+            upper.contains("N975") || upper.contains("N976") -> 4300 // Note 10+ / 5G
+            upper.contains("N981") || upper.contains("N980") -> 4300
+            upper.contains("N986") || upper.contains("N985") -> 4500
+
+            // S10 series
+            upper.contains("G970") -> 3100
+            upper.contains("G973") -> 3400
+            upper.contains("G975") -> 4100
+            upper.contains("G977") -> 4500
+            else -> null
+        }
+    }
+
     private val timestampFormat = ThreadLocal.withInitial { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US) }
 
     fun extractTimestampFromFileName(name: String): Long {
@@ -241,20 +311,34 @@ object BatteryParser {
         }
 
         if (logTimestampMs == 0L) logTimestampMs = extractTimestampFromFileName(fileName)
-
-        // Without a full-charge capacity, the charge counter at a known level still gives a
-        // serviceable estimate. Only when the level is high enough for the rounding to hold.
-        var capacityEstimated = false
-        val counter = chargeCounterMah
-        if (measuredCapacityMah == null && counter != null && level in 20..100) {
-            measuredCapacityMah = (counter * 100.0 / level).roundToInt()
-            capacityEstimated = true
-        }
+        if (designCapacityMah == null) designCapacityMah = lookupDesignCapacity(fileName)
 
         val (resolvedHealth, healthSource, healthUnsupported) = when {
             asoc != null -> Triple(asoc, "asoc", false)
             bsoh != null -> Triple(bsoh, "bsoh", false)
             else -> Triple(null, "", true)
+        }
+
+        var capacityEstimated = false
+        val counter = chargeCounterMah
+        val designCap = designCapacityMah
+        val healthFactor = if (resolvedHealth != null && resolvedHealth in 1..100) resolvedHealth / 100.0 else 1.0
+
+        if (measuredCapacityMah == null) {
+            if (designCap != null) {
+                measuredCapacityMah = (designCap * healthFactor).roundToInt()
+                capacityEstimated = true
+            } else if (counter != null && level in 20..100) {
+                val nominal = counter * 100.0 / level
+                measuredCapacityMah = (nominal * healthFactor).roundToInt()
+                capacityEstimated = true
+            }
+        }
+
+        val cur = chargeCounterMah
+        val max = measuredCapacityMah
+        if (cur != null && max != null && cur > max) {
+            chargeCounterMah = if (level in 0..100) (max * level / 100.0).roundToInt() else max
         }
 
         val readSuccess = resolvedHealth != null || bsoh != null || usage != null ||
@@ -313,7 +397,9 @@ object BatteryParser {
         while (true) {
             val at = t.indexOf(key, searchFrom)
             if (at < 0) return null
-            numberAt(t, at + key.length, allowNegative)?.let { return it }
+            if (at == 0 || !t[at - 1].isLetterOrDigit()) {
+                numberAt(t, at + key.length, allowNegative)?.let { return it }
+            }
             searchFrom = at + 1
         }
     }

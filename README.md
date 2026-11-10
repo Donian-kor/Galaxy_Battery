@@ -1,37 +1,119 @@
-# Galaxy_Battery
+# 갤럭시 배터리 정보 (Galaxy Battery)
 
-<img width="250" alt="Screenshot_20261107-073946_Galaxy Battery" src="https://github.com/user-attachments/assets/a595121e-b44f-4a02-9077-caf02e98947c" />
-<img width="250" alt="Screenshot_20261108-013036_Galaxy Battery" src="https://github.com/user-attachments/assets/ae7c8e1d-3d40-4a04-9aa0-5d522ccdbdda" />
+삼성 덤프스테이트 배터리 로그(`dumpState_*.log`)를 읽어 배터리 건강도(SOH)와
+충전 사이클, 실측 용량, 실시간 텔레메트리를 보여주는 오프라인 진단 앱입니다.
 
-
-
-
-## 상세 정보
-GalaxyBattery는 Samsung 덤프스테이트 배터리 로그(`dumpState_*.log`)를 읽어 다음과 같은 값을 추출합니다:
-
-- `mSavedBatteryAsoc`
-  배터리 상태 비율(기본값).
-  Samsung이 제공하는 가장 정확한 용량 추정치입니다.
-  예: `96`은 배터리가 원래 용량의 약 96%를 보유하고 있음을 의미합니다.
-
-- `mSavedBatteryBsoh`
-  배터리 상태 비율(대체값).
-  `mSavedBatteryAsoc`이 없거나 지원되지 않을 때만 사용됩니다.
-
-- `mSavedBatteryUsage`
-  배터리 사이클 수(충전 회수).
-  원시 값은 사이클 × 100으로 저장됩니다.
-  예: `157000`은 약 1570 사이클을 의미합니다.
-
-- `LLB CAL` 또는 `LLB MAN`
-  배터리 제조/조립 날짜입니다.
-  배터리가 언제 생산되었는지 추정하는 데 사용됩니다.
-
-- 로그 타임스탬프(dumpstate 헤더 또는 파일명에서)
-  앱은 로그가 생성된 시점을 감지하여 데이터가 얼마나 최근의 것인지 표시합니다.
-
-
+- 앱 이름: 갤럭시 배터리 정보
+- 패키지: `com.alyaqdhan.galaxy_battery`
+- 버전: 2.1.1 (versionCode 20110)
+- 최소 요구: Android 8.0 (minSdk 26) / 대상 SDK 37
 
 > [!IMPORTANT]
-> GalaxyBattery는 공식 Samsung 앱이 아닙니다.  
-> 배터리 결과는 기기에서 사용할 수 있는 로그 파일에 따라 달라집니다.
+> 이 앱은 공식 Samsung 앱이 아닙니다.
+> 배터리 결과는 기기에서 사용할 수 있는 로그 파일에 따라 달라지며,
+> 모든 데이터는 기기 안에서만 처리되고 외부로 전송되지 않습니다.
+
+## 주요 기능
+
+- **배터리 건강도 게이지**: SOH 백분율과 상태 라벨(새 배터리 / 좋음 / 보통 / 나쁨),
+  산출 기준(ASOC 또는 BSOH) 표시
+- **충전 사이클**: 마모 단계(마모 없음 / 낮음 / 보통 / 높음), 800회 기준 진행률
+- **용량 상태**: 실측 유효 용량(없으면 충전 카운터와 레벨로 추정), 설계 용량 대비 차이
+- **실시간 텔레메트리**: 배터리 전압(mV), 배터리 온도(℃, 정상/높음/낮음),
+  전류(mA, 충전/방전 상태와 AC/USB/무선/완충 라벨)
+- **분석 요약 카드**: 파싱 성공/실패/지원되지 않음 상태와 ASOC·BSOH 원시 값
+- **진단 리포트 내보내기**: 공유 시트로 텍스트 리포트 전송
+- **로그 찾아보기**: 폴더 안의 `dumpState_*.log` 목록, 다른 로그 파일 선택, 원본 배터리 라인 보기(검색 지원)
+- **폴더 관리**: 폴더 변경, 접근 권한 제거, 저장 공간 삭제 후 폴더 다시 불러오기
+- **로그 생성 가이드**: `*#9900#` 다이얼 → dumpstate/logcat 실행 → sdcard 복사 → 폴더 권한 부여
+  (다이얼 코드는 앱에서 직접 편집 가능)
+- **로그 캐시**: 마지막으로 분석한 결과를 저장해, 같은 로그는 즉시 표시하고 새 파일이 생기면 다시 분석
+
+## 수집하는 값
+
+`BatteryParser`가 로그에서 읽어오는 항목입니다. 값이 없으면 화면에 `—`로 표시합니다.
+
+| 항목 | 로그 형식 | 의미 |
+| --- | --- | --- |
+| ASOC | `mSavedBatteryAsoc` | 배터리 건강도 기본값 |
+| BSOH | `mSavedBatteryBsoh` | ASOC가 없거나 `[unsupported]`일 때 대체값 |
+| 사이클 | `mSavedBatteryUsage` | 원시 값은 사이클 × 100 (예: `157000` → 1570회) |
+| 배터리 날짜 | `LLB CAL` / `LLB MAN` | 배터리 제조·조립일 |
+| 로그 시각 | `== dumpstate:`, `[YYYY-MM-DD HH:MM:SS]`, 파일명 | 로그 생성 시각(없으면 파일명에서) |
+| 레벨 | `level:` | 현재 충전량(%) |
+| 전압 | `voltage:` / 인라인 `voltage:` | mV |
+| 온도 | `temperature:` / 인라인 `temperature:` | 10분의 1도 단위 (예: `314` → 31.4℃) |
+| 전류 | `current now:` / 인라인 `current_avg:` | mA (µA로 표기된 값은 변환) |
+| 충전 카운터 | `charge counter:` / 인라인 `cc:` | µAh → mAh 변환 |
+| 유효 용량 | `Maximum capacity:` | µAh → mAh 변환, 없으면 카운터와 레벨로 추정 |
+| 설계 용량 | `Design capacity:` | µAh → mAh 변환 |
+| 충전 상태 | `status:` / 인라인 `status:` | 1~5 (알 수 없음/충전/방전/충전 안 함/완충) |
+| 전원 | `AC powered:` 등 / 인라인 `ac:true` 등 | AC / USB / 무선 |
+
+인라인 형식은 배터리 서비스 로그의 `ACTION_BATTERY_CHANGED` 줄에서 읽습니다.
+예: `... voltage:4089, temperature:227, cycle_count:0, current_avg:-562, cc:3643752, ac:false, usb:false, wireless:false`
+
+## 기술 스택
+
+- Kotlin 2.4.21, Jetpack Compose (BOM 2026.09.00), Material3 1.5.0-rc01
+- Android Gradle Plugin 9.5.1 (Kotlin 내장 컴파일러 사용)
+- compileSdk/targetSdk 37, minSdk 26, Java 11 호환
+- AndroidX: core-ktx, lifecycle-runtime/viewmodel, activity-compose
+- 파일 접근은 Storage Access Framework(문서 트리 URI + 영구 권한)만 사용
+- 단위 테스트: JUnit 4 / UI 테스트: Compose UI Test, Espresso
+
+## 프로젝트 구조
+
+```
+app/src/main/java/com/alyaqdhan/galaxy_battery/
+├── AppViewModel.kt          # 화면 상태와 폴더/스캔 흐름 전체 제어
+├── GalaxyBatteryApp.kt      # 앱 전용 공유 AppViewModel 소유
+├── MainActivity.kt          # 대시보드 호스트
+├── SetupActivity.kt         # 폴더 권한 부여/변경, 다이얼 코드
+├── LogRawActivity.kt        # 원본 배터리 라인 화면 호스트
+├── BatteryParser.kt         # 로그 파싱(Android 의존 없는 순수 로직)
+├── BatteryCache.kt          # SharedPreferences 기반 결과 캐시
+├── BatteryModels.kt         # BatteryInfo, DocEntry, ErrorDialog
+├── BatteryReport.kt         # 공유용 진단 리포트 텍스트 생성
+├── GaugeComponents.kt       # 게이지·메트릭 타일·텔레메트리 행
+├── SetupComponents.kt       # 설정 화면 구성 요소
+├── CommonComponents.kt      # 공통 UI 조각
+├── LogComponents.kt         # 원본 로그 줄 색상 강조·검색 하이라이트 빌더
+├── MatchedIcon.kt           # 텍스트 굵기에 맞춰 늘어나는 아이콘
+├── ErrorDialogs.kt          # 오류 다이얼로그
+├── Localization.kt          # 숫자·날짜·상대 시간 지역화
+├── SystemColors.kt          # 기기 테마 색상 반영
+├── data/BatteryRepository.kt # SAF/SharedPreferences 접근 단일 진입점
+├── ui/main/MainScreen.kt    # 대시보드 + 로그 목록 시트
+├── ui/setup/SetupScreen.kt  # 설정 화면
+├── ui/rawlog/RawLogScreen.kt# 원본 로그 화면
+├── ui/theme/                # Color/Type/Theme
+└── viewmodel/               # 상태 묶음(FolderState, BatteryState 등)
+```
+
+## 빌드와 테스트
+
+```bash
+# 디버그 APK 빌드 (app/build/outputs/apk/debug/app-debug.apk)
+./gradlew :app:assembleDebug
+
+# 단위 테스트
+./gradlew :app:testDebugUnitTest
+
+# 기기/에뮬레이터 UI 테스트
+./gradlew :app:connectedDebugAndroidTest
+```
+
+단위 테스트는 파서(`BatteryParserTest`), 지역화(`LocalizationTest`),
+스크롤바·테마(`ScrollbarTest`, `SystemColorsTest`)를 다룹니다.
+UI 테스트는 `SetupScreenUiTest`가 설정 화면의 버튼과 앱 이름을 확인합니다.
+
+## 지역화
+
+- 한국어가 기본(`values/strings.xml`), 영어는 `values-en/strings.xml` — 지원 언어는 한국어와 영어뿐입니다
+
+## 라이선스 및 면책
+
+이 저장소의 코드는 프로젝트에 포함된 라이선스 조항에 따릅니다.
+앱은 기기 로그를 읽기만 하며 원본 파일을 수정하지 않습니다.
+배터리 진단 결과는 참고용이며, 정확한 배터리 상태는 공식 서비스 센터에서 확인하세요.

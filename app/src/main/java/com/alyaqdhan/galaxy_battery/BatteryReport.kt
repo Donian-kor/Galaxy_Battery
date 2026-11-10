@@ -14,7 +14,7 @@ object BatteryReport {
 
     fun build(context: Context, info: BatteryInfo): String {
         val none   = context.getString(R.string.report_none)
-        val arabic = context.resources.configuration.locales[0]?.language == "ar"
+        val korean = context.resources.configuration.locales[0]?.language == "ko"
 
         fun value(text: String?): String = text?.takeIf { it.isNotBlank() } ?: none
         fun grouped(number: Int?): String? =
@@ -69,7 +69,7 @@ object BatteryReport {
         )
         lines += context.getString(
             R.string.report_install_date,
-            value(formatBatteryDate(info.batteryDateMs, arabic))
+            value(formatBatteryDate(info.batteryDateMs, korean))
         )
 
         return lines.joinToString("\n")

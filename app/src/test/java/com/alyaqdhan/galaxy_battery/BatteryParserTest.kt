@@ -300,14 +300,14 @@ class BatteryParserTest {
 
     @Test
     fun `capacity is estimated from the charge counter and level`() {
-        val info = parse("  charge counter: 3800000\n  level: 80\n")
+        val info = parse("  charge counter: 3800000\n  level: 80\n", name = "dumpState_unknown_202611010900.log")
         assertEquals(4750, info.measuredCapacityMah)
         assertTrue(info.capacityEstimated)
     }
 
     @Test
     fun `capacity is not estimated at a low level`() {
-        val info = parse("  charge counter: 300000\n  level: 10\n")
+        val info = parse("  charge counter: 300000\n  level: 10\n", name = "dumpState_unknown_202611010900.log")
         assertNull(info.measuredCapacityMah)
         assertFalse(info.capacityEstimated)
     }

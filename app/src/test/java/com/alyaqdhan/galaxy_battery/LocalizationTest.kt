@@ -3,7 +3,6 @@ package com.alyaqdhan.galaxy_battery
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -12,30 +11,6 @@ class LocalizationTest {
     private val minute = 60_000L
     private val hour   = 60 * minute
     private val day    = 24 * hour
-
-    // ── Digits ────────────────────────────────────────────────────────────────
-
-    @Test
-    fun `every western digit becomes its arabic form`() {
-        assertEquals("٠١٢٣٤٥٦٧٨٩", "0123456789".toArabicDigits())
-    }
-
-    @Test
-    fun `every arabic digit becomes its western form`() {
-        assertEquals("0123456789", "٠١٢٣٤٥٦٧٨٩".toWesternDigits())
-    }
-
-    @Test
-    fun `everything else is left alone`() {
-        assertEquals("*#٩٩٠٠#", "*#9900#".toArabicDigits())
-        assertEquals("level=٨٤", "level=84".toArabicDigits())
-        assertEquals("*#9900#", "*#٩٩٠٠#".toWesternDigits())
-    }
-
-    @Test
-    fun `western digits are unchanged by toWesternDigits`() {
-        assertEquals("*#9900", "*#9900".toWesternDigits())
-    }
 
     // ── Time since a log was created ──────────────────────────────────────────
 
@@ -86,34 +61,16 @@ class LocalizationTest {
 
     @Test
     fun `an unknown date is empty`() {
-        assertEquals("", formatBatteryDate(0, arabic = false))
-        assertEquals("", formatBatteryDate(0, arabic = true))
+        assertEquals("", formatBatteryDate(0))
     }
 
     @Test
-    fun `english date is day month year`() {
-        assertEquals("5/1/2024", formatBatteryDate(date, arabic = false))
+    fun `date is day month year`() {
+        assertEquals("5/1/2024", formatBatteryDate(date))
     }
 
     @Test
-    fun `arabic date uses arabic digits and reads from the right`() {
-        assertEquals("٥‏/١‏/٢٠٢٤", formatBatteryDate(date, arabic = true))
-    }
-
-    // ── Arabic text ───────────────────────────────────────────────────────────
-
-    @Test
-    fun `english strings have no arabic digits`() {
-        val strings = File("src/main/res/values-en/strings.xml").readText()
-            .replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "")
-            .replace(Regex("""\\u[0-9a-fA-F]{4}"""), "")   // Direction marks
-            .replace(Regex("""%\d+\$[ds]"""), "")          // Format arguments
-            .lines()
-            .filterNot { it.contains("<?xml") }
-            .joinToString("\n")
-            .replace(Regex("""name="[^"]*""""), "")        // Resource names
-        val arabicDigits = Regex("[٠-٩]")
-        val line = strings.lines().firstOrNull { it.contains(arabicDigits) }
-        assertNull("Arabic digit in: $line", line)
+    fun `date is formatted in korean style when korean is true`() {
+        assertEquals("2024년 1월 5일", formatBatteryDate(date, korean = true))
     }
 }

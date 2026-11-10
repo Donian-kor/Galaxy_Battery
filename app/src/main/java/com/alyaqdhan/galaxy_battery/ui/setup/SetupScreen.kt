@@ -51,7 +51,7 @@ fun SetupScreen(
     var showRemoveDialog by remember { mutableStateOf(false) }
     var showClearDialog  by remember { mutableStateOf(false) }
 
-    val dialCodeLabel = viewModel.dialCode.localDigits()
+    val dialCodeLabel = viewModel.dialCode
 
     // isLoadingDetail is true while the ViewModel is scanning after folder pick
     val isScanning        = viewModel.isLoadingDetail

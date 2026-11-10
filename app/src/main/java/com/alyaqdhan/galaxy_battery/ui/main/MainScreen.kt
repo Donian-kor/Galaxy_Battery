@@ -71,8 +71,6 @@ fun BatteryDashboard(
     LaunchedEffect(Unit) { shown = true }
 
     val headerAlpha by animateFloatAsState(if (shown) 1f else 0f, tween(400), label = "ha")
-    val ribbonAlpha by animateFloatAsState(
-        if (shown) 1f else 0f, tween(380, delayMillis = 60), label = "ra")
     val gaugeAlpha  by animateFloatAsState(
         if (shown) 1f else 0f, tween(450, delayMillis = 140), label = "ga")
     val cardAlpha   by animateFloatAsState(
@@ -109,16 +107,6 @@ fun BatteryDashboard(
                         isCached    = !folderAccessible,
                         onOpenLogs  = { if (!isLoadingDetail) viewModel.openLogSheet() },
                         onOpenSetup = { if (!isLoadingDetail) onNavigateSetup() }
-                    )
-                }
-
-                // ── Battery meta ribbon ───────────────────────────────────────
-                Box(Modifier.alpha(ribbonAlpha)) {
-                    MetaRibbon(
-                        installedDate = batteryDateText(effectiveInfo.batteryDateMs),
-                        monthsUsed    = if (isLoadingDetail) null
-                        else monthsSince(effectiveInfo.batteryDateMs),
-                        isLoading     = isLoadingDetail
                     )
                 }
 
@@ -324,70 +312,7 @@ private fun HeaderIconButton(
     }
 }
 
-@Composable
-private fun MetaRibbon(
-    installedDate: String,
-    monthsUsed: Int?,
-    isLoading: Boolean
-) {
-    val muted  = textMuted()
-    val border = cardBorderColor()
 
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.6f))
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painterResource(R.drawable.ic_sym_calendar_month),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                when {
-                    isLoading -> stringResource(R.string.log_pill_loading)
-                    installedDate.isNotEmpty() -> stringResource(R.string.battery_installed_on, installedDate)
-                    else -> stringResource(R.string.battery_install_unknown)
-                },
-                color = muted,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            if (monthsUsed != null) {
-                Spacer(Modifier.width(8.dp))
-                Surface(
-                    shape  = RoundedCornerShape(4.dp),
-                    color  = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, border.copy(alpha = 0.4f))
-                ) {
-                    Text(
-                        pluralStringResource(
-                            R.plurals.battery_months_used, monthsUsed, monthsUsed
-                        ).localDigits(),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        maxLines = 1
-                    )
-                }
-            }
-        }
-        HorizontalDivider(color = border.copy(alpha = 0.3f))
-    }
-}
 
 @Composable
 private fun ExportReportButton(
@@ -434,7 +359,7 @@ private fun DashboardFooter(versionName: String) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                stringResource(R.string.footer_title, versionName).localDigits(),
+                stringResource(R.string.footer_title, versionName),
                 color = textSecondary(),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                 textAlign = TextAlign.Center
@@ -509,7 +434,7 @@ fun LogSheet(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "${allLogEntries.size}".localDigits(),
+                    "${allLogEntries.size}",
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                 )

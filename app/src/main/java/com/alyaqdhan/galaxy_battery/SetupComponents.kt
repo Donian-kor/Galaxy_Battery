@@ -50,7 +50,7 @@ import kotlinx.coroutines.launch
 /**
  * The app's mark: a battery with a heartbeat through it, on the same wavy edge as the health
  * gauge. It's drawn rather than loaded so it takes the theme's colors and the pulse can trace
- * itself in. Direction-neutral, so it stays the same way round in Arabic.
+ * itself in. Direction-neutral, so it reads the same way in any locale.
  *
  * The depth comes from the glow, not from Modifier.shadow: on Android 10 a shadow around this
  * concave edge makes the render thread hang.
@@ -168,7 +168,7 @@ fun SetupStepRow(number: Int, step: SetupStep, isLast: Boolean, isDone: Boolean 
                     )
                 } else {
                     Text(
-                        "$number".localDigits(),
+                        "$number",
                         color = green,
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                     )
@@ -304,11 +304,14 @@ fun FolderAccess(
             }
         }
         Spacer(Modifier.height(10.dp))
-        ButtonPair(spacing = 10.dp) {
+        Column(
+            Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Button(
                 onClick        = onChangeFolder,
                 enabled        = !isScanning,
-                modifier       = Modifier.heightIn(min = 44.dp),
+                modifier       = Modifier.fillMaxWidth().heightIn(min = 44.dp),
                 shape          = RoundedCornerShape(12.dp),
                 contentPadding = buttonPadding,
                 colors         = ButtonDefaults.buttonColors(
@@ -321,7 +324,7 @@ fun FolderAccess(
             OutlinedButton(
                 onClick        = onRemoveAccess,
                 enabled        = !isScanning,
-                modifier       = Modifier.heightIn(min = 44.dp),
+                modifier       = Modifier.fillMaxWidth().heightIn(min = 44.dp),
                 shape          = RoundedCornerShape(12.dp),
                 contentPadding = buttonPadding,
                 border         = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = if (isScanning) 0.3f else 0.6f)),
@@ -332,7 +335,7 @@ fun FolderAccess(
             OutlinedButton(
                 onClick        = onClearDataAndReload,
                 enabled        = !isScanning,
-                modifier       = Modifier.heightIn(min = 44.dp),
+                modifier       = Modifier.fillMaxWidth().heightIn(min = 44.dp),
                 shape          = RoundedCornerShape(12.dp),
                 contentPadding = buttonPadding,
                 border         = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = if (isScanning) 0.3f else 0.6f)),
@@ -344,33 +347,4 @@ fun FolderAccess(
     }
 }
 
-/**
- * Two buttons side by side and equally wide when both labels fit on one line, or stacked at full
- * width when they don't, so large text sizes and longer translations never wrap a label.
- */
-@Composable
-private fun ButtonPair(spacing: Dp, content: @Composable () -> Unit) {
-    Layout(content) { measurables, constraints ->
-        val gap   = spacing.roundToPx()
-        val width = constraints.maxWidth
-        val half  = (width - gap) / 2
-        val sideBySide = measurables.all { it.maxIntrinsicWidth(Constraints.Infinity) <= half }
 
-        val placeables = measurables.map {
-            it.measure(Constraints.fixedWidth(if (sideBySide) half else width))
-        }
-        val height = if (sideBySide) {
-            placeables.maxOf { it.height }
-        } else {
-            placeables.sumOf { it.height } + gap * (placeables.size - 1)
-        }
-        layout(width, height) {
-            var x = 0
-            var y = 0
-            placeables.forEach {
-                it.placeRelative(x, y)
-                if (sideBySide) x += it.width + gap else y += it.height + gap
-            }
-        }
-    }
-}

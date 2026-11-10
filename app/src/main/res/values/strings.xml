@@ -124,15 +124,15 @@
     <string name="cycles_metric_unit">회 충전</string>
     <string name="cycles_progress">진행 %1$s%%</string>
     <string name="cycles_warranty">%1$s회 기준</string>
-    <string name="capacity_metric_title">실측 유효 용량</string>
-    <string name="capacity_metric_title_estimated">추정 유효 용량</string>
+    <string name="capacity_metric_title">현재 배터리 최대 용량</string>
+    <string name="capacity_metric_title_estimated">현재 배터리 최대 용량</string>
     <string name="capacity_unit" translatable="false">mAh</string>
-    <string name="capacity_design">설계: %1$s</string>
+    <string name="capacity_design">신품 배터리 용량: %1$s</string>
     <string name="capacity_delta">%1$s mAh</string>
-    <string name="capacity_no_design">설계 정보 없음</string>
+    <string name="capacity_no_design">신품 용량 정보 없음</string>
     <string name="wear_normal">정상 열화 상태</string>
-    <string name="telemetry_voltage">팩 단자 전압</string>
-    <string name="telemetry_temperature">배터리 코어 온도</string>
+    <string name="telemetry_voltage">배터리 전압</string>
+    <string name="telemetry_temperature">배터리 온도</string>
     <string name="telemetry_current_charge">충전 전류 유입량</string>
     <string name="telemetry_current_discharge">소모 전류</string>
     <string name="telemetry_mv">%1$s mV</string>
@@ -159,6 +159,7 @@
     <string name="analysis_body_unsupported">배터리 로그 파싱 완료 · 이 기기는 SOH 값을 보고하지 않습니다</string>
     <string name="analysis_body_failed">로그에서 배터리 상태 값을 찾지 못했습니다</string>
     <string name="analysis_raw">ASOC: %1$s · BSOH: %2$s</string>
+    <string name="analysis_parser_source" translatable="false">배터리 서비스 덤프 · SEC_GAUGE_%1$s 파서</string>
     <string name="analysis_no_error">파싱 오류 없음</string>
     <string name="analysis_error">오류: %1$s</string>
 
@@ -172,8 +173,8 @@
     <string name="report_design_capacity">설계 용량: %1$s</string>
     <string name="report_measured_capacity">유효 용량: %1$s</string>
     <string name="report_measured_capacity_estimated">추정 유효 용량: %1$s</string>
-    <string name="report_voltage">팩 단자 전압: %1$s</string>
-    <string name="report_temperature">배터리 코어 온도: %1$s</string>
+    <string name="report_voltage">배터리 전압: %1$s</string>
+    <string name="report_temperature">배터리 온도: %1$s</string>
     <string name="report_current">전류: %1$s</string>
     <string name="report_log_file">로그 파일: %1$s</string>
     <string name="report_log_time">로그 생성: %1$s</string>

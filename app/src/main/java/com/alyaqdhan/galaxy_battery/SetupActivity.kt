@@ -135,9 +135,9 @@ class SetupActivity : ComponentActivity() {
 
     /** Not every device has a phone app, a Wi-Fi tablet for example. */
     private fun openDialer(code: String) {
-        // Dial code may come from user input (including non-Latin digits already
-        // normalized). Sanitize so it can't break out of the tel: URI scheme.
-        val sanitized = code.filter { it.isDigit() || it == '*' || it == '#' || it == '+' }
+        // Dial code may come from user input, so sanitize it to ASCII digits and the
+        // symbols the dialer accepts — anything else could break the tel: URI scheme.
+        val sanitized = code.filter { it in '0'..'9' || it == '*' || it == '#' || it == '+' }
         if (sanitized.isBlank()) return
         try {
             startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", sanitized, null)))

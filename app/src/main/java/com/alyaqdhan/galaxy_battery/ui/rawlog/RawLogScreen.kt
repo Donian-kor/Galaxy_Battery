@@ -65,8 +65,7 @@ fun LogRawScreen(
     var searchQuery  by remember { mutableStateOf("") }
     var searchActive by remember { mutableStateOf(false) }
     val searchFocusRequester = remember { FocusRequester() }
-    // The log uses Western digits, but an Arabic keyboard can type Eastern ones.
-    val logQuery = searchQuery.toWesternDigits()
+    val logQuery = searchQuery
     LaunchedEffect(searchActive) {
         if (searchActive) searchFocusRequester.requestFocus()
     }
@@ -127,7 +126,7 @@ fun LogRawScreen(
                             .padding(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            "$matchCount".localDigits(),
+                            "$matchCount",
                             color = colors.searchBadgeFg,
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                         )
@@ -170,7 +169,7 @@ fun LogRawScreen(
                 }
             }
         } else {
-            // Log lines are English technical text, so they stay left-to-right in Arabic too.
+            // 로그 줄은 영문 기술 텍스트라 항상 왼쪽에서 오른쪽으로 읽힌다.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 SelectionContainer {
                     val lines = remember(text) { text.lines() }
