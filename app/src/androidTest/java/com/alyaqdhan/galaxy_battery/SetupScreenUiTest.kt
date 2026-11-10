@@ -16,7 +16,7 @@ class SetupScreenUiTest {
 
     @Test
     fun grantPermissionButton_isDisplayed() {
-        composeRule.onNodeWithText("Grant Permission to Log Folder").assertIsDisplayed()
+        composeRule.onNodeWithText("로그 폴더 권한 부여").assertIsDisplayed()
     }
 
     @Test

@@ -217,8 +217,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 isLoadingDetail = false
                 releaseUnusedFolderGrants(keep = previousUri)
                 errorDialog     = ErrorDialog.WrongFolder(
-                    "No dumpstate log files found in the selected folder. " +
-                            "Please navigate to /Device/log/ and try again."
+                    "선택한 폴더에서 dumpState_*.log 파일을 찾지 못했습니다. " +
+                            "/Device/log/ 폴더로 이동해 다시 시도하세요."
                 )
                 onResult(false)
                 return@launch
