@@ -29,16 +29,8 @@
 
 ## 스크린샷
 
-<table>
-  <tr>
-    <td><b>Galaxy Z Fold4 (SM-F926N)</b></td>
-    <td><b>Galaxy Note10 (SM-N976N)</b></td>
-  </tr>
-  <tr>
-    <td><img src="screenshots/dashboard_fold4.png" width="300"/></td>
-    <td><img src="screenshots/dashboard_note10.png" width="300"/></td>
-  </tr>
-</table>
+<img width="250" alt="Galaxy Z Fold4 (SM-F926N)" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold4.png" />
+<img width="250" alt="Galaxy Note10 (SM-N976N)" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10.png" />
 
 ## 수집하는 값
 
