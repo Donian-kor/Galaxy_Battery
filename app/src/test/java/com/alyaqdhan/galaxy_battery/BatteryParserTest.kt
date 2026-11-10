@@ -329,6 +329,35 @@ class BatteryParserTest {
     }
 
     @Test
+    fun `inline action_battery_changed line is parsed`() {
+        val log = "D BatteryService: Sending ACTION_BATTERY_CHANGED: level:94, status:3, health:2, " +
+            "voltage:4089, temperature:227, cycle_count:0, current_avg:-562, cc:3643752, ac:false, " +
+            "usb:false, wireless:false\n"
+        val info = parse(log)
+        assertEquals(4089, info.voltageMv)
+        assertEquals(22.7f, info.temperatureC!!, 0.01f)
+        assertEquals(-562, info.currentNowMa)
+        assertEquals(3643, info.chargeCounterMah)
+        assertEquals(0, info.cycleCount)
+        assertEquals(ChargeStatus.DISCHARGING, info.chargeStatus)
+        assertEquals(PowerSource.NONE, info.powerSource)
+    }
+
+    @Test
+    fun `inline ac true sets ac power source`() {
+        val info = parse("D BatteryService: Sending ACTION_BATTERY_CHANGED: level:100, status:5, " +
+            "voltage:4256, temperature:259, ac:true, usb:false, wireless:false\n")
+        assertEquals(PowerSource.AC, info.powerSource)
+    }
+
+    @Test
+    fun `inline usb true sets usb power source`() {
+        val info = parse("D BatteryService: Sending ACTION_BATTERY_CHANGED: level:100, status:2, " +
+            "voltage:4200, temperature:260, usb:true, ac:false, wireless:false\n")
+        assertEquals(PowerSource.USB, info.powerSource)
+    }
+
+    @Test
     fun `an out of range status is ignored`() {
         assertNull(parse("  status: 9\n").chargeStatus)
     }

@@ -162,6 +162,15 @@ object BatteryParser {
         val currentNowRegex    = Regex("""^current now:\s*(-?\d+)""")
         val statusRegex        = Regex("""^status:\s*(-?\d+)""")
 
+        // ACTION_BATTERY_CHANGED 인라인 키-값 (예: voltage:4256, temperature:259, cc:3864000)
+        val inlineVoltageRegex   = Regex("""voltage:(-?\d+)""")
+        val inlineTempRegex      = Regex("""temperature:(-?\d+)""")
+        val inlineCurrentRegex   = Regex("""current_avg:(-?\d+)""")
+        val inlineChargeCounter  = Regex("""cc:(\d+)""")
+        val inlineCycleCount     = Regex("""cycle_count:(\d+)""")
+        val inlineHealthRegex    = Regex("""health:(\d+)""")
+        val inlineStatusRegex    = Regex("""status:(\d+)""")
+
         BufferedReader(InputStreamReader(stream)).use { reader ->
             reader.forEachLine { line ->
                 val t = line.trim()
@@ -222,10 +231,40 @@ object BatteryParser {
                         chargeStatus = it.groupValues[1].toIntOrNull()?.takeIf { s -> s in 1..5 }
                     }
 
+                // ── ACTION_BATTERY_CHANGED 인라인 원격 측정 ─────────────────────
+                // 예: voltage:4256, temperature:259, current_avg:1, cc:3864000,
+                //     cycle_count:0, health:2, ac:true, usb:false, wireless:false
+                if (voltageMv == null)
+                    inlineVoltageRegex.find(t)?.let { m ->
+                        m.groupValues[1].toIntOrNull()?.takeIf { v -> v > 0 }?.let { voltageMv = it }
+                    }
+                if (temperatureC == null)
+                    inlineTempRegex.find(t)?.let { m ->
+                        m.groupValues[1].toIntOrNull()?.let { tenths ->
+                            if (tenths > 0) temperatureC = tenths / 10f
+                        }
+                    }
+                if (currentNowMa == null)
+                    inlineCurrentRegex.find(t)?.let { m ->
+                        m.groupValues[1].toIntOrNull()?.let { currentNowMa = currentToMa(it) }
+                    }
+                if (chargeCounterMah == null)
+                    inlineChargeCounter.find(t)?.let { m ->
+                        m.groupValues[1].toIntOrNull()?.let { chargeCounterMah = microAhToMah(it) }
+                    }
+                if (usage == null)
+                    inlineCycleCount.find(t)?.let { m ->
+                        m.groupValues[1].toIntOrNull()?.let { usage = it }
+                    }
+                if (chargeStatus == null)
+                    inlineStatusRegex.find(t)?.let { m ->
+                        m.groupValues[1].toIntOrNull()?.takeIf { s -> s in 1..5 }?.let { chargeStatus = it }
+                    }
+
                 when {
-                    t.startsWith("AC powered:")       && t.endsWith("true") -> powerSource = PowerSource.AC
-                    t.startsWith("USB powered:")      && t.endsWith("true") -> powerSource = PowerSource.USB
-                    t.startsWith("Wireless powered:") && t.endsWith("true") -> powerSource = PowerSource.WIRELESS
+                    (t.startsWith("AC powered:") || t.contains("ac:true")) && t.contains("true") -> powerSource = PowerSource.AC
+                    (t.startsWith("USB powered:") || t.contains("usb:true")) && t.contains("true") -> powerSource = PowerSource.USB
+                    (t.startsWith("Wireless powered:") || t.contains("wireless:true")) && t.contains("true") -> powerSource = PowerSource.WIRELESS
                 }
             }
         }

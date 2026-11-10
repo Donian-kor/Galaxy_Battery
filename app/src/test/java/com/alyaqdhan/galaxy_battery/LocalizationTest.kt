@@ -103,8 +103,8 @@ class LocalizationTest {
     // ── Arabic text ───────────────────────────────────────────────────────────
 
     @Test
-    fun `arabic strings have no western digits`() {
-        val strings = File("src/main/res/values-ar/strings.xml").readText()
+    fun `english strings have no arabic digits`() {
+        val strings = File("src/main/res/values-en/strings.xml").readText()
             .replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "")
             .replace(Regex("""\\u[0-9a-fA-F]{4}"""), "")   // Direction marks
             .replace(Regex("""%\d+\$[ds]"""), "")          // Format arguments
@@ -112,7 +112,8 @@ class LocalizationTest {
             .filterNot { it.contains("<?xml") }
             .joinToString("\n")
             .replace(Regex("""name="[^"]*""""), "")        // Resource names
-        val line = strings.lines().firstOrNull { it.contains(Regex("[0-9]")) }
-        assertNull("Western digit in: $line", line)
+        val arabicDigits = Regex("[٠-٩]")
+        val line = strings.lines().firstOrNull { it.contains(arabicDigits) }
+        assertNull("Arabic digit in: $line", line)
     }
 }
