@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 
 import com.alyaqdhan.galaxy_battery.data.BatteryRepository
 import com.alyaqdhan.galaxy_battery.viewmodel.FolderState
+import com.alyaqdhan.galaxy_battery.viewmodel.GaugeViewModel
 import com.alyaqdhan.galaxy_battery.viewmodel.DialCodeViewModel
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -58,9 +59,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // Error overlay
     var errorDialog by mutableStateOf<ErrorDialog?>(null) ; private set
 
-    // Gauge animation signals
-    var gaugeAmplitude by mutableFloatStateOf(1f) ; private set
-    var gaugeReplayKey by mutableIntStateOf(0) ; private set
+    // Gauge animation signals (delegated to GaugeViewModel)
+    private val gaugeVm = GaugeViewModel(getApplication())
+    val gaugeAmplitude: Float get() = gaugeVm.gaugeAmplitude
+    val gaugeReplayKey: Int get() = gaugeVm.gaugeReplayKey
 
     // ── Dial code ─────────────────────────────────────────────────────────────
     private val dialCodeVm = DialCodeViewModel(getApplication())
@@ -117,7 +119,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 if (latestEntry == null) {
                     folderAccessible = false
                     isLoadingDetail  = false
-                    gaugeReplayKey++
+                    gaugeVm.incrementReplayKey()
                     errorDialog = ErrorDialog.FolderDeleted
                     return@launch
                 }
@@ -227,7 +229,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     releaseUnusedFolderGrants(keep = previousUri)
                     folderUri   = previousUri
                     batteryInfo = previousInfo
-                    gaugeReplayKey++
+                    gaugeVm.incrementReplayKey()
                     errorDialog = ErrorDialog.WrongFolder(info.errorMessage)
                 }
                 else -> {
@@ -286,7 +288,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 allLogEntries = emptyList()
                 val cached = repository.loadCachedBatteryInfo()
                 if (cached != null) {
-                    batteryInfo = cached; hasEverScanned = true; gaugeReplayKey++
+                    batteryInfo = cached; hasEverScanned = true; gaugeVm.incrementReplayKey()
                 }
                 errorDialog = ErrorDialog.PermissionLost
                 return@launch
@@ -301,7 +303,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 showLogSheet     = false
                 val cached = repository.loadCachedBatteryInfo()
                 if (cached != null) {
-                    batteryInfo = cached; hasEverScanned = true; gaugeReplayKey++
+                    batteryInfo = cached; hasEverScanned = true; gaugeVm.incrementReplayKey()
                 }
                 errorDialog = ErrorDialog.FolderDeleted
                 return@launch
@@ -318,7 +320,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 alreadyHasPerm   = true
                 folderAccessible = true
                 isRefreshing     = false
-                gaugeReplayKey++
+                gaugeVm.incrementReplayKey()
                 return@launch
             }
 
@@ -334,7 +336,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 alreadyHasPerm   = true
                 folderAccessible = true
                 hasEverScanned   = true
-                gaugeReplayKey++
+                gaugeVm.incrementReplayKey()
             } else {
                 errorDialog = ErrorDialog.WrongFolder(info.errorMessage)
             }
@@ -410,7 +412,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 showLogSheet     = false
                 val cached = repository.loadCachedBatteryInfo()
                 if (cached != null) {
-                    batteryInfo = cached; hasEverScanned = true; gaugeReplayKey++
+                    batteryInfo = cached; hasEverScanned = true; gaugeVm.incrementReplayKey()
                 }
                 errorDialog = ErrorDialog.PermissionLost
             } else if (hasPerm) {
@@ -424,7 +426,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         showLogSheet     = false
                         val cached = repository.loadCachedBatteryInfo()
                         if (cached != null) {
-                            batteryInfo = cached; hasEverScanned = true; gaugeReplayKey++
+                            batteryInfo = cached; hasEverScanned = true; gaugeVm.incrementReplayKey()
                         }
                         errorDialog = ErrorDialog.FolderDeleted
                     }
@@ -446,7 +448,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                                 // Cache already holds the latest — use it directly
                                 batteryInfo    = cached
                                 hasEverScanned = true
-                                gaugeReplayKey++
+                                gaugeVm.incrementReplayKey()
                             } else {
                                 // Need to parse the latest file
                                 isLoadingDetail = true
@@ -457,7 +459,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                                 if (info.readSuccess) {
                                     batteryInfo    = info
                                     hasEverScanned = true
-                                    gaugeReplayKey++
+                                    gaugeVm.incrementReplayKey()
                                 }
                             }
                         }
@@ -467,23 +469,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ── Gauge pulse ───────────────────────────────────────────────────────────
+    // ── Gauge pulse (delegated) ───────────────────────────────────────────────
 
-    private var pulseJob: kotlinx.coroutines.Job? = null
+    fun startGaugePulse() = gaugeVm.startGaugePulse()
 
-    fun startGaugePulse() {
-        pulseJob?.cancel()
-        pulseJob = viewModelScope.launch {
-            while (true) {
-                delay(900L)
-                gaugeAmplitude = if (gaugeAmplitude < 0.5f) 1f else 0f
-            }
-        }
-    }
-
-    fun stopGaugePulse() {
-        pulseJob?.cancel()
-        pulseJob       = null
-        gaugeAmplitude = 1f
-    }
+    fun stopGaugePulse() = gaugeVm.stopGaugePulse()
 }
