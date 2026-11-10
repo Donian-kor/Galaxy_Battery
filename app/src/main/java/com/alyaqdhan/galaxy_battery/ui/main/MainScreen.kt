@@ -1,12 +1,8 @@
 package com.alyaqdhan.galaxy_battery.ui.main
 import com.alyaqdhan.galaxy_battery.ui.theme.*
 
-import android.content.Intent
-import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,8 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -37,7 +33,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -52,7 +47,8 @@ import com.alyaqdhan.galaxy_battery.R
 fun BatteryDashboard(
     viewModel: AppViewModel,
     onNavigateSetup: () -> Unit,
-    onNavigateRaw: () -> Unit
+    onNavigateRaw: () -> Unit,
+    onExportReport: () -> Unit
 ) {
     val info             = viewModel.batteryInfo
     val isLoadingDetail  = viewModel.isLoadingDetail || info == null
@@ -75,6 +71,8 @@ fun BatteryDashboard(
     LaunchedEffect(Unit) { shown = true }
 
     val headerAlpha by animateFloatAsState(if (shown) 1f else 0f, tween(400), label = "ha")
+    val ribbonAlpha by animateFloatAsState(
+        if (shown) 1f else 0f, tween(380, delayMillis = 60), label = "ra")
     val gaugeAlpha  by animateFloatAsState(
         if (shown) 1f else 0f, tween(450, delayMillis = 140), label = "ga")
     val cardAlpha   by animateFloatAsState(
@@ -83,9 +81,6 @@ fun BatteryDashboard(
     val effectiveInfo = info ?: BatteryInfo(
         healthPercent = null, cycleCount = null, healthUnsupported = false, readSuccess = false
     )
-
-    val tp    = textPrimary()
-    val muted = textMuted()
 
     ErrorDialogHost(
         errorDialog = viewModel.errorDialog,
@@ -102,134 +97,63 @@ fun BatteryDashboard(
                 Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
             ) {
                 Spacer(Modifier.height(ScreenContentTop))
 
-                // ── Header row ────────────────────────────────────────────────
-                Box(Modifier.fillMaxWidth().alpha(headerAlpha)) {
-                    FilledTonalIconButton(
-                        onClick  = { if (!isLoadingDetail) viewModel.openLogSheet() },
-                        enabled  = !isLoadingDetail,
-                        modifier = Modifier.align(Alignment.CenterStart).size(40.dp),
-                        colors   = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = cornerButtonColor(),
-                            contentColor   = MaterialTheme.colorScheme.onSurface
-                        )
-                    ) {
-                        // The arrow is mirrored in RTL, so turn it the other way to still point down.
-                        val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-                        Icon(
-                            painterResource(R.drawable.ic_sym_arrow_back), stringResource(R.string.browse_logs),
-                            modifier = Modifier.size(20.dp).rotate(if (isRtl) 90f else -90f)
-                        )
-                    }
-
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            stringResource(R.string.app_name), color = tp,
-                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        if (isLoadingDetail) {
-                            Text("…", color = muted.copy(alpha = 0.5f),
-                                style = MaterialTheme.typography.labelSmall)
-                            Text("…", color = muted.copy(alpha = 0.4f),
-                                style = MaterialTheme.typography.labelSmall)
-                            Spacer(Modifier.height(2.dp))
-                            Text("…", color = muted.copy(alpha = 0.3f),
-                                style = MaterialTheme.typography.labelSmall)
-                        } else {
-                            if (effectiveInfo.logFileName.isNotEmpty()) {
-                                val displayName = BatteryParser.truncateLogDisplayName(effectiveInfo.logFileName)
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment     = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        displayName, color = muted, textAlign = TextAlign.Center,
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                    if (!folderAccessible) {
-                                        Spacer(Modifier.width(4.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(3.dp),
-                                            color = MaterialTheme.colorScheme.surfaceContainerHighest
-                                        ) {
-                                            Text(
-                                                stringResource(R.string.log_cached),
-                                                modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp),
-                                                color    = muted.copy(alpha = 0.7f),
-                                                style    = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 8.sp,
-                                                    letterSpacing = 0.sp
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            val logCreated = relativeTimeText(effectiveInfo.logTimestampMs)
-                            if (logCreated.isNotEmpty())
-                                Text(
-                                    stringResource(R.string.log_created, logCreated),
-                                    color = muted, textAlign = TextAlign.Center,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            val installDate = batteryDateText(effectiveInfo.batteryDateMs)
-                            if (installDate.isNotEmpty()) {
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    stringResource(R.string.installed_on, installDate),
-                                    color = muted.copy(alpha = 0.7f), textAlign = TextAlign.Center,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                        }
-                    }
-
-                    FilledTonalIconButton(
-                        onClick  = { if (!isLoadingDetail) onNavigateSetup() },
-                        enabled  = !isLoadingDetail,
-                        modifier = Modifier.align(Alignment.CenterEnd).size(40.dp),
-                        colors   = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = cornerButtonColor(),
-                            contentColor   = MaterialTheme.colorScheme.onSurface
-                        )
-                    ) {
-                        Icon(painterResource(R.drawable.ic_sym_info), stringResource(R.string.how_to_update_log),
-                            modifier = Modifier.size(18.dp))
-                    }
+                // ── Top app bar ───────────────────────────────────────────────
+                Box(Modifier.alpha(headerAlpha)) {
+                    DashboardHeader(
+                        logFileName = effectiveInfo.logFileName,
+                        logMoment   = logMomentText(effectiveInfo.logTimestampMs),
+                        isLoading   = isLoadingDetail,
+                        isCached    = !folderAccessible,
+                        onOpenLogs  = { if (!isLoadingDetail) viewModel.openLogSheet() },
+                        onOpenSetup = { if (!isLoadingDetail) onNavigateSetup() }
+                    )
                 }
 
-                Spacer(Modifier.height(28.dp))
+                // ── Battery meta ribbon ───────────────────────────────────────
+                Box(Modifier.alpha(ribbonAlpha)) {
+                    MetaRibbon(
+                        installedDate = batteryDateText(effectiveInfo.batteryDateMs),
+                        monthsUsed    = if (isLoadingDetail) null
+                        else monthsSince(effectiveInfo.batteryDateMs),
+                        isLoading     = isLoadingDetail
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
 
                 val isNewBattery = !isLoadingDetail && !effectiveInfo.healthUnsupported &&
                         (effectiveInfo.healthPercent ?: 0) >= 100
 
-                Box(Modifier.alpha(gaugeAlpha)) {
-                    HealthGaugeCard(effectiveInfo, isLoadingDetail, arcAnimatable, gaugeAmplitude, gaugeReplayKey)
-                }
-                Spacer(Modifier.height(16.dp))
-                Box(Modifier.alpha(cardAlpha)) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                        CycleCountCard(effectiveInfo, isLoadingDetail, isNewBattery, gaugeReplayKey)
-                        Spacer(Modifier.height(12.dp))
-                        LogSummaryCard(effectiveInfo, isLoadingDetail)
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            stringResource(R.string.version_label, BuildConfig.VERSION_NAME).localDigits(),
-                            color = muted.copy(alpha = 0.45f),
-                            style = MaterialTheme.typography.labelSmall
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    Box(Modifier.alpha(gaugeAlpha)) {
+                        HealthGaugeCard(
+                            info           = effectiveInfo,
+                            isLoadingDetail = isLoadingDetail,
+                            arcAnimatable  = arcAnimatable,
+                            amplitude      = gaugeAmplitude,
+                            gaugeReplayKey = gaugeReplayKey
                         )
                     }
+                    Spacer(Modifier.height(16.dp))
+                    Box(Modifier.alpha(cardAlpha)) {
+                        Column(Modifier.fillMaxWidth()) {
+                            TelemetryCard(effectiveInfo, isLoadingDetail, isNewBattery, gaugeReplayKey)
+                            Spacer(Modifier.height(12.dp))
+                            LogSummaryCard(effectiveInfo, isLoadingDetail)
+                            Spacer(Modifier.height(16.dp))
+                            ExportReportButton(
+                                enabled = !isLoadingDetail,
+                                onClick = onExportReport
+                            )
+                        }
+                    }
                 }
-                Spacer(Modifier.height(32.dp))
+
+                Spacer(Modifier.height(24.dp))
+                DashboardFooter(versionName = BuildConfig.VERSION_NAME)
             }
         }
 
@@ -278,6 +202,269 @@ fun BatteryDashboard(
                 },
                 extractTs       = { BatteryParser.extractTimestampFromFileName(it) }
             )
+        }
+    }
+}
+
+// ── Dashboard chrome ──────────────────────────────────────────────────────────
+
+@Composable
+private fun DashboardHeader(
+    logFileName: String,
+    logMoment: String,
+    isLoading: Boolean,
+    isCached: Boolean,
+    onOpenLogs: () -> Unit,
+    onOpenSetup: () -> Unit
+) {
+    val muted  = textMuted()
+    val border = cardBorderColor()
+
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(60.dp)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HeaderIconButton(
+            icon        = R.drawable.ic_sym_description,
+            description = stringResource(R.string.browse_logs),
+            enabled     = !isLoading,
+            onClick     = onOpenLogs
+        )
+
+        Column(
+            Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                stringResource(R.string.app_name),
+                color = textPrimary(),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize   = 18.sp
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(3.dp))
+            val cacheSuffix =
+                if (isCached) " · ${stringResource(R.string.log_cached)}" else ""
+            val pillText = when {
+                isLoading -> stringResource(R.string.log_pill_loading)
+                logFileName.isNotEmpty() && logMoment.isNotEmpty() ->
+                    "$logFileName · $logMoment$cacheSuffix"
+                logFileName.isNotEmpty() -> "$logFileName$cacheSuffix"
+                logMoment.isNotEmpty() -> "$logMoment$cacheSuffix"
+                else -> stringResource(R.string.log_pill_loading)
+            }
+            Surface(
+                shape  = CircleShape,
+                color  = MaterialTheme.colorScheme.surfaceContainerLow,
+                border = androidx.compose.foundation.BorderStroke(1.dp, border.copy(alpha = 0.4f))
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        Modifier
+                            .size(5.dp)
+                            .background(
+                                if (isLoading) muted else MaterialTheme.colorScheme.primary,
+                                CircleShape
+                            )
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        pillText,
+                        color = muted,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+
+        HeaderIconButton(
+            icon        = R.drawable.ic_sym_tune,
+            description = stringResource(R.string.how_to_update_log),
+            enabled     = !isLoading,
+            onClick     = onOpenSetup
+        )
+    }
+}
+
+@Composable
+private fun HeaderIconButton(
+    icon: Int,
+    description: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val border = cardBorderColor()
+    IconButton(
+        onClick  = onClick,
+        enabled  = enabled,
+        modifier = Modifier
+            .size(40.dp)
+            .background(cornerButtonColor(), CircleShape)
+            .border(1.dp, border.copy(alpha = 0.4f), CircleShape)
+    ) {
+        Icon(
+            painterResource(icon),
+            contentDescription = description,
+            tint = if (enabled) textMuted() else textMuted().copy(alpha = 0.4f),
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@Composable
+private fun MetaRibbon(
+    installedDate: String,
+    monthsUsed: Int?,
+    isLoading: Boolean
+) {
+    val muted  = textMuted()
+    val border = cardBorderColor()
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.6f))
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painterResource(R.drawable.ic_sym_calendar_month),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                when {
+                    isLoading -> stringResource(R.string.log_pill_loading)
+                    installedDate.isNotEmpty() -> stringResource(R.string.battery_installed_on, installedDate)
+                    else -> stringResource(R.string.battery_install_unknown)
+                },
+                color = muted,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            if (monthsUsed != null) {
+                Spacer(Modifier.width(8.dp))
+                Surface(
+                    shape  = RoundedCornerShape(4.dp),
+                    color  = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, border.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        pluralStringResource(
+                            R.plurals.battery_months_used, monthsUsed, monthsUsed
+                        ).localDigits(),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+        HorizontalDivider(color = border.copy(alpha = 0.3f))
+    }
+}
+
+@Composable
+private fun ExportReportButton(
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick        = onClick,
+        enabled        = enabled,
+        modifier       = Modifier.fillMaxWidth().height(48.dp),
+        shape          = CircleShape,
+        colors         = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor   = MaterialTheme.colorScheme.onPrimary
+        ),
+        contentPadding = PaddingValues(horizontal = 16.dp)
+    ) {
+        Icon(
+            painterResource(R.drawable.ic_sym_file_download),
+            contentDescription = null,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            stringResource(R.string.export_report),
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun DashboardFooter(versionName: String) {
+    val muted  = textMuted()
+    val border = cardBorderColor()
+
+    Column(Modifier.fillMaxWidth()) {
+        HorizontalDivider(color = border.copy(alpha = 0.3f))
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                stringResource(R.string.footer_title, versionName).localDigits(),
+                color = textSecondary(),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.footer_subtitle),
+                color = muted,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    stringResource(R.string.footer_privacy),
+                    color = muted.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("•", color = muted.copy(alpha = 0.5f), style = MaterialTheme.typography.labelSmall)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.footer_read_only),
+                    color = muted.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+                )
+            }
         }
     }
 }
@@ -483,73 +670,6 @@ fun LogEntry(
                     contentDescription = stringResource(R.string.view_raw),
                     tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(13.dp)
-                )
-            }
-        }
-    }
-}
-
-// ── Analysis log summary card ────────────────────────────────────────────────
-@Composable
-fun LogSummaryCard(
-    info: BatteryInfo,
-    isLoadingDetail: Boolean = false
-) {
-    val muted = textMuted()
-    val border = cardBorderColor()
-    val tp = textPrimary()
-
-    ElevatedCard(
-        modifier = Modifier.fillMaxWidth().border(BorderStroke(1.dp, border), RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = cardColor()),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = gaugeGreen().copy(alpha = 0.12f),
-                modifier = Modifier.size(44.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        painterResource(R.drawable.ic_sym_check_circle), null,
-                        tint = gaugeGreen(),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    if (isLoadingDetail) "로그 분석 중…" else "덤프 상태 시스템 로그 정상 분석됨",
-                    color = tp,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    if (isLoadingDetail) "레지스터 라인 파싱 진행 중"
-                    else "배터리 드라이버 레지스터 라인 파싱 완료 · 삼성 HAL 무결성 검증 통과",
-                    color = muted,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = if (info.readSuccess) gaugeGreen().copy(alpha = 0.12f)
-                else gaugeGray().copy(alpha = 0.12f),
-                border = BorderStroke(1.dp, if (info.readSuccess) gaugeGreen().copy(alpha = 0.4f)
-                else gaugeGray().copy(alpha = 0.4f))
-            ) {
-                Text(
-                    if (info.readSuccess) "CRC32 정상" else "대기",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    color = if (info.readSuccess) gaugeGreen() else gaugeGray(),
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                 )
             }
         }

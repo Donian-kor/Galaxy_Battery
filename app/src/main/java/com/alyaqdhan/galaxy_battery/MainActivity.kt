@@ -88,7 +88,8 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateRaw   = {
                             startActivity(Intent(this@MainActivity, LogRawActivity::class.java))
-                        }
+                        },
+                        onExportReport  = { shareBatteryReport() }
                     )
                 }
             }
@@ -98,6 +99,17 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         appViewModel.checkOnResume()
+    }
+
+    /** Opens the system share sheet with the diagnostic report the dashboard exported. */
+    private fun shareBatteryReport() {
+        val info = appViewModel.batteryInfo ?: return
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, getString(R.string.report_subject))
+            putExtra(Intent.EXTRA_TEXT, BatteryReport.build(this@MainActivity, info))
+        }
+        startActivity(Intent.createChooser(send, getString(R.string.report_share)))
     }
 }
 

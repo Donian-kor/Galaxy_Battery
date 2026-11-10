@@ -6,6 +6,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -60,6 +61,42 @@ fun relativeTimeText(timestampMs: Long): String {
     val ago = timeAgo(System.currentTimeMillis() - timestampMs)
         ?: return stringResource(R.string.time_just_now)
     return pluralStringResource(ago.plural, ago.count, ago.count).localDigits()
+}
+
+/** A telemetry number with thousands separators, in the UI's own digits. */
+@Composable
+fun Int.groupedDigits(): String = String.format(Locale.US, "%,d", this).localDigits()
+
+/** Whole months since [dateMs], or null when the log didn't report a date. */
+internal fun monthsSince(dateMs: Long): Int? {
+    if (dateMs <= 0L) return null
+    val now  = Calendar.getInstance()
+    val then = Calendar.getInstance().apply { timeInMillis = dateMs }
+    var months = (now.get(Calendar.YEAR) - then.get(Calendar.YEAR)) * 12 +
+            (now.get(Calendar.MONTH) - then.get(Calendar.MONTH))
+    if (now.get(Calendar.DAY_OF_MONTH) < then.get(Calendar.DAY_OF_MONTH)) months--
+    return months.coerceAtLeast(0)
+}
+
+/** "오늘 14:32:08" / "어제 …" / "2025-01-02 …", or empty when the timestamp is unknown. */
+@Composable
+fun logMomentText(timestampMs: Long): String {
+    if (timestampMs == 0L) return ""
+    val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(timestampMs)).localDigits()
+    val now  = Calendar.getInstance()
+    val then = Calendar.getInstance().apply { timeInMillis = timestampMs }
+
+    if (now.get(Calendar.YEAR) == then.get(Calendar.YEAR) &&
+        now.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
+    ) return stringResource(R.string.log_moment_today, time)
+
+    val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+    if (yesterday.get(Calendar.YEAR) == then.get(Calendar.YEAR) &&
+        yesterday.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
+    ) return stringResource(R.string.log_moment_yesterday, time)
+
+    val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(timestampMs)).localDigits()
+    return stringResource(R.string.log_moment_date, date, time)
 }
 
 internal fun formatBatteryDate(dateMs: Long, arabic: Boolean): String {

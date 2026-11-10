@@ -235,8 +235,9 @@ object BatteryParser {
         // Without a full-charge capacity, the charge counter at a known level still gives a
         // serviceable estimate. Only when the level is high enough for the rounding to hold.
         var capacityEstimated = false
-        if (measuredCapacityMah == null && chargeCounterMah != null && level in 20..100) {
-            measuredCapacityMah = (chargeCounterMah * 100.0 / level).roundToInt()
+        val counter = chargeCounterMah
+        if (measuredCapacityMah == null && counter != null && level in 20..100) {
+            measuredCapacityMah = (counter * 100.0 / level).roundToInt()
             capacityEstimated = true
         }
 

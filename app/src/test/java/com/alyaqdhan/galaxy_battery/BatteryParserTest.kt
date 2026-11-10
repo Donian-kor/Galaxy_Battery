@@ -257,6 +257,82 @@ class BatteryParserTest {
         assertNull(sections("just some text\nand more\n"))
     }
 
+    // ── Live telemetry ────────────────────────────────────────────────────────
+
+    @Test
+    fun `voltage is read in millivolts`() {
+        assertEquals(4382, parse("  voltage: 4382\n").voltageMv)
+    }
+
+    @Test
+    fun `a zero voltage is treated as missing`() {
+        assertNull(parse("  voltage: 0\n").voltageMv)
+    }
+
+    @Test
+    fun `temperature is read in tenths of a degree`() {
+        assertEquals(31.4f, parse("  temperature: 314\n").temperatureC!!, 0.001f)
+    }
+
+    @Test
+    fun `current now is read in milliamps`() {
+        assertEquals(1850, parse("  current now: 1850\n").currentNowMa)
+    }
+
+    @Test
+    fun `current printed in microamps is converted`() {
+        assertEquals(-1250, parse("  current now: -1250000\n").currentNowMa)
+    }
+
+    @Test
+    fun `charge counter is converted from microamp hours`() {
+        val info = parse("  charge counter: 3948000\n  level: 84\n")
+        assertEquals(3948, info.chargeCounterMah)
+    }
+
+    @Test
+    fun `capacities are read and converted`() {
+        val info = parse("  Maximum capacity: 4710000\n  Design capacity: 5000000\n")
+        assertEquals(4710, info.measuredCapacityMah)
+        assertEquals(5000, info.designCapacityMah)
+        assertFalse(info.capacityEstimated)
+    }
+
+    @Test
+    fun `capacity is estimated from the charge counter and level`() {
+        val info = parse("  charge counter: 3800000\n  level: 80\n")
+        assertEquals(4750, info.measuredCapacityMah)
+        assertTrue(info.capacityEstimated)
+    }
+
+    @Test
+    fun `capacity is not estimated at a low level`() {
+        val info = parse("  charge counter: 300000\n  level: 10\n")
+        assertNull(info.measuredCapacityMah)
+        assertFalse(info.capacityEstimated)
+    }
+
+    @Test
+    fun `a full capacity beats the estimate`() {
+        val info = parse(
+            "  charge counter: 3800000\n  level: 80\n  Maximum capacity: 4620000\n"
+        )
+        assertEquals(4620, info.measuredCapacityMah)
+        assertFalse(info.capacityEstimated)
+    }
+
+    @Test
+    fun `charge status and power source are read`() {
+        val info = parse("  status: 2\n  AC powered: true\n")
+        assertEquals(ChargeStatus.CHARGING, info.chargeStatus)
+        assertEquals(PowerSource.AC, info.powerSource)
+    }
+
+    @Test
+    fun `an out of range status is ignored`() {
+        assertNull(parse("  status: 9\n").chargeStatus)
+    }
+
     @Test
     fun `a large section is read quickly`() {
         val log = buildString {

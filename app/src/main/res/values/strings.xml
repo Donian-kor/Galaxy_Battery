@@ -94,6 +94,98 @@
     <string name="wear_high">높은 마모</string>
     <string name="wear_unavailable">사용 불가</string>
 
+    <!-- Dashboard header and battery meta ribbon -->
+    <string name="battery_installed_on">배터리 장착: %1$s</string>
+    <plurals name="battery_months_used">
+        <item quantity="one">%1$d개월 사용 중</item>
+        <item quantity="other">%1$d개월 사용 중</item>
+    </plurals>
+    <string name="battery_install_unknown">장착일 정보 없음</string>
+    <string name="log_moment_today">오늘 %1$s</string>
+    <string name="log_moment_yesterday">어제 %1$s</string>
+    <string name="log_moment_date">%1$s %2$s</string>
+    <string name="log_pill_loading">로그 분석 중…</string>
+
+    <!-- Battery health gauge -->
+    <string name="gauge_title_soh">배터리 건강도 (SOH)</string>
+    <string name="gauge_source_chip" translatable="false">SEC_GAUGE_%1$s</string>
+    <string name="gauge_percent_sign" translatable="false">%</string>
+    <string name="gauge_scale_low_title">0% 위험</string>
+    <string name="gauge_scale_low_desc">교체 권고</string>
+    <string name="gauge_scale_mid_title">50% 보통</string>
+    <string name="gauge_scale_mid_desc">성능 저하</string>
+    <string name="gauge_scale_high_title">100% 설계</string>
+    <string name="gauge_scale_high_desc">공장 출하치</string>
+    <string name="gauge_parser_caption">배터리 서비스 덤프 · %1$s 파서</string>
+
+    <!-- Telemetry card -->
+    <string name="telemetry_title">충전 횟수 및 용량 상태</string>
+    <string name="cycles_metric_title">총 충전 사이클</string>
+    <string name="cycles_metric_unit">회 충전</string>
+    <string name="cycles_progress">진행 %1$s%%</string>
+    <string name="cycles_warranty">%1$s회 기준</string>
+    <string name="capacity_metric_title">실측 유효 용량</string>
+    <string name="capacity_metric_title_estimated">추정 유효 용량</string>
+    <string name="capacity_unit" translatable="false">mAh</string>
+    <string name="capacity_design">설계: %1$s</string>
+    <string name="capacity_delta">%1$s mAh</string>
+    <string name="capacity_no_design">설계 정보 없음</string>
+    <string name="wear_normal">정상 열화 상태</string>
+    <string name="telemetry_voltage">팩 단자 전압</string>
+    <string name="telemetry_temperature">배터리 코어 온도</string>
+    <string name="telemetry_current_charge">충전 전류 유입량</string>
+    <string name="telemetry_current_discharge">소모 전류</string>
+    <string name="telemetry_mv">%1$s mV</string>
+    <string name="telemetry_celsius">%1$s ℃</string>
+    <string name="telemetry_ma">%1$s mA</string>
+    <string name="telemetry_temp_normal">정상</string>
+    <string name="telemetry_temp_warm">높음</string>
+    <string name="telemetry_temp_cold">낮음</string>
+    <string name="telemetry_charging_ac">AC 충전</string>
+    <string name="telemetry_charging_usb">USB 충전</string>
+    <string name="telemetry_charging_wireless">무선 충전</string>
+    <string name="telemetry_full">완충</string>
+    <string name="telemetry_discharging">방전 중</string>
+    <string name="telemetry_no_data" translatable="false">—</string>
+
+    <!-- Analysis summary card -->
+    <string name="analysis_title_ok">덤프 상태 시스템 로그 정상 분석됨</string>
+    <string name="analysis_title_loading">로그 분석 중…</string>
+    <string name="analysis_title_failed">로그 분석 완료 · 배터리 값 없음</string>
+    <string name="analysis_badge_ok">분석 완료</string>
+    <string name="analysis_badge_wait">대기</string>
+    <string name="analysis_body_loading">배터리 드라이버 레지스터 라인 파싱 진행 중</string>
+    <string name="analysis_body_ok">배터리 로그 파싱 완료 · %1$s 기준 SOH 산출</string>
+    <string name="analysis_body_unsupported">배터리 로그 파싱 완료 · 이 기기는 SOH 값을 보고하지 않습니다</string>
+    <string name="analysis_body_failed">로그에서 배터리 상태 값을 찾지 못했습니다</string>
+    <string name="analysis_raw">ASOC: %1$s · BSOH: %2$s</string>
+    <string name="analysis_no_error">파싱 오류 없음</string>
+    <string name="analysis_error">오류: %1$s</string>
+
+    <!-- Report export -->
+    <string name="export_report">배터리 진단 리포트 내보내기</string>
+    <string name="report_subject">Galaxy Battery 진단 리포트</string>
+    <string name="report_share">리포트 공유</string>
+    <string name="report_health">배터리 건강도(SOH): %1$s</string>
+    <string name="report_health_source">산출 기준: %1$s</string>
+    <string name="report_cycles">총 충전 사이클: %1$s</string>
+    <string name="report_design_capacity">설계 용량: %1$s</string>
+    <string name="report_measured_capacity">유효 용량: %1$s</string>
+    <string name="report_measured_capacity_estimated">추정 유효 용량: %1$s</string>
+    <string name="report_voltage">팩 단자 전압: %1$s</string>
+    <string name="report_temperature">배터리 코어 온도: %1$s</string>
+    <string name="report_current">전류: %1$s</string>
+    <string name="report_log_file">로그 파일: %1$s</string>
+    <string name="report_log_time">로그 생성: %1$s</string>
+    <string name="report_install_date">배터리 장착일: %1$s</string>
+    <string name="report_none">정보 없음</string>
+
+    <!-- Footer -->
+    <string name="footer_title">Galaxy Battery v%1$s · 삼성 진단 파서</string>
+    <string name="footer_subtitle">배터리 덤프 로그 기반 SOH 파서 · 오프라인 처리</string>
+    <string name="footer_privacy">데이터는 기기 밖으로 전송되지 않음</string>
+    <string name="footer_read_only">원본 로그는 읽기 전용</string>
+
     <!-- Raw log -->
     <string name="action_back">뒤로</string>
     <string name="action_search">검색</string>
