@@ -21,7 +21,7 @@
 - Galaxy S: S10, S20, S21, S22, S23, S25, S26
 - Galaxy Z Fold: Fold 1, Fold 2, Fold 3, Fold 4, Fold 5, Fold 6, Fold 7, Fold 8
 - Galaxy Z Flip: Flip 1, Flip 3, Flip 4, Flip 5, Flip 6, Flip 7, Flip 8
-- Galaxy Note: Note10, Note20
+- Galaxy Note: Note10, Note10+, Note20
 
 - 앱 이름: 갤럭시 배터리 정보
 - 패키지: `com.alyaqdhan.galaxy_battery`
