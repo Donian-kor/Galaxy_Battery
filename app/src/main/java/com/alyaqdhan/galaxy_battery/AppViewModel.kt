@@ -21,6 +21,7 @@ import com.alyaqdhan.galaxy_battery.data.BatteryRepository
 import com.alyaqdhan.galaxy_battery.viewmodel.FolderState
 import com.alyaqdhan.galaxy_battery.viewmodel.GaugeViewModel
 import com.alyaqdhan.galaxy_battery.viewmodel.LogSheetState
+import com.alyaqdhan.galaxy_battery.viewmodel.RawLogState
 import com.alyaqdhan.galaxy_battery.viewmodel.DialCodeViewModel
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -57,10 +58,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         get() = logSheetState.showLogSheet
         private set(value) { logSheetState = logSheetState.copy(showLogSheet = value) }
 
-    // Raw log screen
-    var rawLogText          by mutableStateOf("")    ; private set
-    var isLoadingRaw        by mutableStateOf(false) ; private set
-    var selectedLogFileName by mutableStateOf("")    ; private set
+    // Raw log screen (delegated to RawLogState)
+    var rawLogState by mutableStateOf(RawLogState()) ; private set
+    var rawLogText: String
+        get() = rawLogState.rawLogText
+        private set(value) { rawLogState = rawLogState.copy(rawLogText = value) }
+    var isLoadingRaw: Boolean
+        get() = rawLogState.isLoadingRaw
+        private set(value) { rawLogState = rawLogState.copy(isLoadingRaw = value) }
+    var selectedLogFileName: String
+        get() = rawLogState.selectedLogFileName
+        private set(value) { rawLogState = rawLogState.copy(selectedLogFileName = value) }
 
     // Error overlay
     var errorDialog by mutableStateOf<ErrorDialog?>(null) ; private set
