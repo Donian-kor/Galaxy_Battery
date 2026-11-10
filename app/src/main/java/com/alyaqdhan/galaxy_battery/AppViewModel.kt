@@ -22,6 +22,7 @@ import com.alyaqdhan.galaxy_battery.viewmodel.FolderState
 import com.alyaqdhan.galaxy_battery.viewmodel.GaugeViewModel
 import com.alyaqdhan.galaxy_battery.viewmodel.LogSheetState
 import com.alyaqdhan.galaxy_battery.viewmodel.RawLogState
+import com.alyaqdhan.galaxy_battery.viewmodel.BatteryState
 import com.alyaqdhan.galaxy_battery.viewmodel.DialCodeViewModel
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -32,7 +33,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ── Shared app state ──────────────────────────────────────────────────────
     var folderState      by mutableStateOf(FolderState())        ; private set
-    var batteryInfo      by mutableStateOf<BatteryInfo?>(null)   ; private set
+    var batteryState    by mutableStateOf(BatteryState())        ; private set
+    var batteryInfo: BatteryInfo?
+        get() = batteryState.batteryInfo
+        private set(value) { batteryState = batteryState.copy(batteryInfo = value) }
 
     var folderUri: Uri?
         get() = folderState.folderUri
@@ -46,8 +50,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var hasEverScanned: Boolean
         get() = folderState.hasEverScanned
         private set(value) { folderState = folderState.copy(hasEverScanned = value) }
-    var isRefreshing     by mutableStateOf(false)                ; private set
-    var isLoadingDetail  by mutableStateOf(false)                ; private set
+    var isRefreshing: Boolean
+        get() = batteryState.isRefreshing
+        private set(value) { batteryState = batteryState.copy(isRefreshing = value) }
+    var isLoadingDetail: Boolean
+        get() = batteryState.isLoadingDetail
+        private set(value) { batteryState = batteryState.copy(isLoadingDetail = value) }
 
     // Log sheet (delegated to LogSheetState)
     var logSheetState by mutableStateOf(LogSheetState()) ; private set
@@ -71,7 +79,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set(value) { rawLogState = rawLogState.copy(selectedLogFileName = value) }
 
     // Error overlay
-    var errorDialog by mutableStateOf<ErrorDialog?>(null) ; private set
+    var errorDialog: ErrorDialog?
+        get() = batteryState.errorDialog
+        private set(value) { batteryState = batteryState.copy(errorDialog = value) }
 
     // Gauge animation signals (delegated to GaugeViewModel)
     private val gaugeVm = GaugeViewModel(getApplication())
