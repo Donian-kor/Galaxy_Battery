@@ -267,12 +267,39 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Forgets the folder and everything read from it, as if the app had just been installed. */
     fun removeFolderAccess() {
-        releaseUnusedFolderGrants(keep = null)
+        clearAllData(keepUri = false)
+    }
+
+    /**
+     * Clears all app-internal storage (SharedPreferences cache, battery cache) and resets
+     * ViewModel state. When [keepUri] is false the persisted folder URI is also removed so the
+     * user must pick the log folder again on next launch.
+     */
+    fun clearAllData(keepUri: Boolean) {
+        releaseUnusedFolderGrants(keep = if (keepUri) folderUri else null)
         repository.clearBatteryInfoCache()
-        prefs.edit { remove("folder_uri") }
-        folderUri        = null
+        prefs.edit {
+            remove("folder_uri")
+            remove("cache_log_file_name")
+            remove("cache_log_timestamp_ms")
+            remove("cache_health_percent")
+            remove("cache_health_source")
+            remove("cache_health_unsupported")
+            remove("cache_cycle_count")
+            remove("cache_battery_date_ms")
+            remove("cache_voltage_mv")
+            remove("cache_temperature_c")
+            remove("cache_current_ma")
+            remove("cache_charge_counter_mah")
+            remove("cache_measured_capacity")
+            remove("cache_capacity_estimated")
+            remove("cache_design_capacity")
+            remove("cache_charge_status")
+            remove("cache_power_source")
+        }
+        folderUri        = if (keepUri) folderUri else null
         alreadyHasPerm   = false
-        folderAccessible = true
+        folderAccessible = false
         hasEverScanned   = false
         batteryInfo      = null
         allLogEntries    = emptyList()

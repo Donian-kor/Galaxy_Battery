@@ -42,12 +42,14 @@ fun SetupScreen(
     onPickFolder: () -> Unit,
     onOpenSettings: () -> Unit,
     onRemoveAccess: () -> Unit,
+    onClearDataAndReload: () -> Unit,
     onBack: () -> Unit,
     onDialCode: () -> Unit
 ) {
     var showEditDialog   by remember { mutableStateOf(false) }
     var editCodeDraft    by remember { mutableStateOf("") }
     var showRemoveDialog by remember { mutableStateOf(false) }
+    var showClearDialog  by remember { mutableStateOf(false) }
 
     val dialCodeLabel = viewModel.dialCode.localDigits()
 
@@ -76,10 +78,11 @@ fun SetupScreen(
             content = if (hasLivePermission) {
                 {
                     FolderAccess(
-                        isScanning     = isScanning,
-                        onOpenSettings = onOpenSettings,
-                        onChangeFolder = onPickFolder,
-                        onRemoveAccess = { showRemoveDialog = true }
+                        isScanning          = isScanning,
+                        onOpenSettings      = onOpenSettings,
+                        onChangeFolder      = onPickFolder,
+                        onRemoveAccess      = { showRemoveDialog = true },
+                        onClearDataAndReload = { showClearDialog = true }
                     )
                 }
             } else {
@@ -262,6 +265,32 @@ fun SetupScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showRemoveDialog = false }) { Text(stringResource(R.string.action_cancel)) }
+            }
+        )
+    }
+
+    // ── Clear data dialog ─────────────────────────────────────────────────────
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = { Text(stringResource(R.string.clear_data_title)) },
+            text  = { Text(stringResource(R.string.clear_data_body)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showClearDialog = false
+                        onClearDataAndReload()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor   = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(stringResource(R.string.clear_data_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) { Text(stringResource(R.string.clear_data_cancel)) }
             }
         )
     }

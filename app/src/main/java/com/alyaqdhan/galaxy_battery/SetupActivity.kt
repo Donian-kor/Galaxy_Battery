@@ -99,11 +99,11 @@ class SetupActivity : ComponentActivity() {
             setContent {
                 GalaxyBatteryTheme {
                     SetupScreen(
-                        viewModel      = viewModel,
-                        showBackButton = showBack,
-                        onPickFolder   = { folderPicker.launch(null) },
-                        onOpenSettings = { openAppSettings() },
-                        onRemoveAccess = {
+                        viewModel               = viewModel,
+                        showBackButton          = showBack,
+                        onPickFolder            = { folderPicker.launch(null) },
+                        onOpenSettings          = { openAppSettings() },
+                        onRemoveAccess          = {
                             viewModel.removeFolderAccess()
                             // The Dashboard has nothing left to show, so start over from first run.
                             startActivity(
@@ -111,6 +111,11 @@ class SetupActivity : ComponentActivity() {
                                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                             )
                             finish()
+                        },
+                        onClearDataAndReload = {
+                            viewModel.clearAllData(keepUri = false)
+                            // After clearing, re-pick the log folder so the user can reload their data.
+                            folderPicker.launch(null)
                         },
                         onBack         = { finish() },
                         onDialCode     = { openDialer(viewModel.dialCode) }

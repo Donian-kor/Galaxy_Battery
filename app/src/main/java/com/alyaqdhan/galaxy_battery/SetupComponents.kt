@@ -261,7 +261,8 @@ fun FolderAccess(
     isScanning: Boolean,
     onOpenSettings: () -> Unit,
     onChangeFolder: () -> Unit,
-    onRemoveAccess: () -> Unit
+    onRemoveAccess: () -> Unit,
+    onClearDataAndReload: () -> Unit
 ) {
     val green         = accentGreenEffective()
     val actionStyle   = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
@@ -327,6 +328,17 @@ fun FolderAccess(
                 colors         = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
             ) {
                 Text(stringResource(R.string.setup_remove_access), style = actionStyle, textAlign = TextAlign.Center)
+            }
+            OutlinedButton(
+                onClick        = onClearDataAndReload,
+                enabled        = !isScanning,
+                modifier       = Modifier.heightIn(min = 44.dp),
+                shape          = RoundedCornerShape(12.dp),
+                contentPadding = buttonPadding,
+                border         = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = if (isScanning) 0.3f else 0.6f)),
+                colors         = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text(stringResource(R.string.clear_data_confirm), style = actionStyle, textAlign = TextAlign.Center)
             }
         }
     }
