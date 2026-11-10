@@ -5,6 +5,8 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 object BatteryParser {
 
@@ -134,11 +136,31 @@ object BatteryParser {
         var batteryDateMs = 0L
         var logTimestampMs = 0L
 
+        // Live telemetry, from the battery service dump (not the backup block).
+        var level = -1
+        var chargeCounterMah: Int? = null
+        var measuredCapacityMah: Int? = null
+        var designCapacityMah: Int? = null
+        var voltageMv: Int? = null
+        var temperatureC: Float? = null
+        var currentNowMa: Int? = null
+        var chargeStatus: Int? = null
+        var powerSource = PowerSource.NONE
+
         val fullDateTimeRegex = Regex("""(?:==\s*dumpstate:|dumpstate:|Build time:)\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})""")
         val bracketDateTimeRegex = Regex("""^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})]""")
         val dateTimeFmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
         val llbRegex = Regex("""^LLB\s+(CAL|MAN):\s*(\d{8})\s*$""", RegexOption.IGNORE_CASE)
         val compactDateFmt = SimpleDateFormat("yyyyMMdd", Locale.US)
+
+        val levelRegex         = Regex("""^level:\s*(-?\d+)""")
+        val chargeCounterRegex = Regex("""^[Cc]harge counter:\s*(-?\d+)""")
+        val maxCapacityRegex   = Regex("""^Maximum capacity:\s*(-?\d+)""")
+        val designCapRegex     = Regex("""^Design capacity:\s*(-?\d+)""")
+        val voltageRegex       = Regex("""^voltage:\s*(-?\d+)""")
+        val temperatureRegex   = Regex("""^temperature:\s*(-?\d+)""")
+        val currentNowRegex    = Regex("""^current now:\s*(-?\d+)""")
+        val statusRegex        = Regex("""^status:\s*(-?\d+)""")
 
         BufferedReader(InputStreamReader(stream)).use { reader ->
             reader.forEachLine { line ->
@@ -173,10 +195,50 @@ object BatteryParser {
                         logTimestampMs = dateTimeFmt.parse(m.groupValues[1])?.time ?: 0L
                     }
                 }
+
+                // ── Live battery service telemetry ────────────────────────────
+                if (level < 0) levelRegex.find(t)?.let { level = it.groupValues[1].toIntOrNull() ?: -1 }
+
+                if (chargeCounterMah == null)
+                    chargeCounterRegex.find(t)?.let { chargeCounterMah = microAhToMah(it.groupValues[1].toIntOrNull()) }
+                if (measuredCapacityMah == null)
+                    maxCapacityRegex.find(t)?.let { measuredCapacityMah = microAhToMah(it.groupValues[1].toIntOrNull()) }
+                if (designCapacityMah == null)
+                    designCapRegex.find(t)?.let { designCapacityMah = microAhToMah(it.groupValues[1].toIntOrNull()) }
+                if (voltageMv == null)
+                    voltageRegex.find(t)?.let { voltageMv = it.groupValues[1].toIntOrNull()?.takeIf { v -> v > 0 } }
+                if (temperatureC == null)
+                    temperatureRegex.find(t)?.let { m ->
+                        m.groupValues[1].toIntOrNull()?.let { tenths ->
+                            if (tenths > 0) temperatureC = tenths / 10f
+                        }
+                    }
+                if (currentNowMa == null)
+                    currentNowRegex.find(t)?.let { m ->
+                        m.groupValues[1].toIntOrNull()?.let { currentNowMa = currentToMa(it) }
+                    }
+                if (chargeStatus == null)
+                    statusRegex.find(t)?.let {
+                        chargeStatus = it.groupValues[1].toIntOrNull()?.takeIf { s -> s in 1..5 }
+                    }
+
+                when {
+                    t.startsWith("AC powered:")       && t.endsWith("true") -> powerSource = PowerSource.AC
+                    t.startsWith("USB powered:")      && t.endsWith("true") -> powerSource = PowerSource.USB
+                    t.startsWith("Wireless powered:") && t.endsWith("true") -> powerSource = PowerSource.WIRELESS
+                }
             }
         }
 
         if (logTimestampMs == 0L) logTimestampMs = extractTimestampFromFileName(fileName)
+
+        // Without a full-charge capacity, the charge counter at a known level still gives a
+        // serviceable estimate. Only when the level is high enough for the rounding to hold.
+        var capacityEstimated = false
+        if (measuredCapacityMah == null && chargeCounterMah != null && level in 20..100) {
+            measuredCapacityMah = (chargeCounterMah * 100.0 / level).roundToInt()
+            capacityEstimated = true
+        }
 
         val (resolvedHealth, healthSource, healthUnsupported) = when {
             asoc != null -> Triple(asoc, "asoc", false)
@@ -199,9 +261,29 @@ object BatteryParser {
             batteryDateMs = batteryDateMs,
             logFileName = fileName,
             logTimestampMs = logTimestampMs,
-            readSuccess = readSuccess
+            readSuccess = readSuccess,
+            voltageMv = voltageMv,
+            temperatureC = temperatureC,
+            currentNowMa = currentNowMa,
+            chargeCounterMah = chargeCounterMah,
+            measuredCapacityMah = measuredCapacityMah,
+            capacityEstimated = capacityEstimated,
+            designCapacityMah = designCapacityMah,
+            chargeStatus = chargeStatus,
+            powerSource = powerSource
         )
     }
+
+    /** Charge counters are reported in µAh; a few devices already print mAh. */
+    private fun microAhToMah(value: Int?): Int? {
+        if (value == null || value <= 0) return null
+        return if (value > 20_000) (value / 1000).takeIf { it > 0 } else value
+    }
+
+    /** Samsung prints "current now" in mA; Android's µA figures are three digits larger. */
+    private fun currentToMa(value: Int): Int =
+        if (abs(value) > 20_000) value / 1000 else value
+
 
     private fun extractValueOrNull(line: String, key: String): Int? {
         val raw = line.substringAfter(key, "").trim()

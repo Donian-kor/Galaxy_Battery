@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     res/values-night-v31/themes.xml
-    Android 12+ dark mode: tints the launch window like the wallpaper-based Compose page.
-    Android 11 and below never read this file.
+    Android 12+ dark mode: matches the fixed brand page color used by Compose.
 -->
 <resources>
 
     <style name="Theme.GalaxyBattery" parent="android:Theme.Material.NoActionBar">
-        <item name="android:colorBackground">@android:color/system_neutral2_900</item>
+        <item name="android:colorBackground">#0A0E18</item>
         <item name="android:windowBackground">?android:attr/colorBackground</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

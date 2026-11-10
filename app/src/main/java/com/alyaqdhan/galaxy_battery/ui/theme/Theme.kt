@@ -1,6 +1,5 @@
 package com.alyaqdhan.galaxy_battery.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -12,26 +11,20 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 
-import com.alyaqdhan.galaxy_battery.systemColorScheme
 // ── Theme composable ──────────────────────────────────────────────────────────
+/**
+ * The dashboard is built on a fixed dark-first brand palette, so the wallpaper's
+ * dynamic colors are deliberately not used: they would recolor the gauges and cards
+ * away from the design. Light mode is the derived tonal counterpart.
+ */
 @Composable
 fun GalaxyBatteryTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val context = LocalContext.current
-    val colorScheme: ColorScheme
-    val appColors: AppColors
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        colorScheme = systemColorScheme(context, darkTheme)
-        appColors   = dynamicAppColors(colorScheme, darkTheme)
-    } else {
-        colorScheme = if (darkTheme) ClassicDarkScheme else ClassicLightScheme
-        appColors   = if (darkTheme) ClassicDarkColors else ClassicLightColors
-    }
+    val colorScheme: ColorScheme = if (darkTheme) ClassicDarkScheme else ClassicLightScheme
+    val appColors: AppColors     = if (darkTheme) ClassicDarkColors else ClassicLightColors
 
     MaterialTheme(colorScheme = colorScheme) {
         CompositionLocalProvider(LocalAppColors provides appColors) {

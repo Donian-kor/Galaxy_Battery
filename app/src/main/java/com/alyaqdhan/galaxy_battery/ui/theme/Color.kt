@@ -26,13 +26,13 @@ val AccentOrangeLight = Color(0xFFB85C00)
 val AccentRedLight    = Color(0xFFB52233)
 val AccentBlueLight   = Color(0xFF1A5FAA)
 
-// ── Dark surface palette ──────────────────────────────────────────────────────
-val DarkBgDeep        = Color(0xFF080D18)
+// ── Dark surface palette (fixed brand palette, from the dashboard design) ─────
+val DarkBgDeep        = Color(0xFF0A0E18)
 val DarkBgCard        = Color(0xFF111827)
 val DarkBgCardBorder  = Color(0xFF1F2D42)
-val DarkTextPrimary   = Color(0xFFE8EEFF)
-val DarkTextSecondary = Color(0xFF7A8BA8)
-val DarkTextMuted     = Color(0xFF5A7090)
+val DarkTextPrimary   = Color(0xFFDFE2F1)
+val DarkTextSecondary = Color(0xFFBACBBF)
+val DarkTextMuted     = Color(0xFF84958A)
 
 // ── Light surface palette ─────────────────────────────────────────────────────
 val LightBgDeep        = Color(0xFFF1F5F9)
@@ -45,18 +45,18 @@ val LightTextMuted     = Color(0xFF64748B)
 // ── Classic schemes (Android 11 and below) ────────────────────────────────────
 internal val ClassicDarkScheme = darkColorScheme(
     primary              = AccentGreen,
-    onPrimary            = Color(0xFF003823),
+    onPrimary            = Color(0xFF003824),
     primaryContainer     = Color(0xFF00533A),
     onPrimaryContainer   = Color(0xFF9CF5C0),
-    secondary            = Color(0xFF4DA6FF),
-    onSecondary          = Color(0xFF00315E),
+    secondary            = Color(0xFFA0CAFF),
+    onSecondary          = Color(0xFF003259),
     secondaryContainer   = Color(0xFF004884),
     onSecondaryContainer = Color(0xFFD1E4FF),
-    tertiary             = AccentOrange,
-    onTertiary           = Color(0xFF452B00),
+    tertiary             = Color(0xFFFFE0C3),
+    onTertiary           = Color(0xFF492900),
     tertiaryContainer    = Color(0xFF633F00),
     onTertiaryContainer  = Color(0xFFFFDDB3),
-    error                = AccentRed,
+    error                = Color(0xFFFFB4AB),
     onError              = Color(0xFF690005),
     errorContainer       = Color(0xFF93000A),
     onErrorContainer     = Color(0xFFFFDAD6),
@@ -64,19 +64,19 @@ internal val ClassicDarkScheme = darkColorScheme(
     onBackground         = DarkTextPrimary,
     surface              = DarkBgCard,
     onSurface            = DarkTextPrimary,
-    surfaceVariant       = Color(0xFF1A2740),
+    surfaceVariant       = Color(0xFF313540),
     onSurfaceVariant     = DarkTextSecondary,
-    outline              = DarkBgCardBorder,
-    outlineVariant       = DarkTextMuted,
+    outline              = DarkTextMuted,
+    outlineVariant       = Color(0xFF3B4A41),
     scrim                = Color(0xFF000000),
     inverseSurface       = DarkTextPrimary,
-    inverseOnSurface     = DarkBgDeep,
-    inversePrimary       = Color(0xFF006B4B),
-    surfaceTint          = AccentGreen,
-    surfaceContainerHighest = Color(0xFF1E2D42),
-    surfaceContainerHigh    = Color(0xFF182238),
-    surfaceContainer        = Color(0xFF131929),
-    surfaceContainerLow     = Color(0xFF101520),
+    inverseOnSurface     = Color(0xFF2C303B),
+    inversePrimary       = Color(0xFF006C49),
+    surfaceTint          = Color(0xFF00E29E),
+    surfaceContainerHighest = Color(0xFF313540),
+    surfaceContainerHigh    = Color(0xFF262A35),
+    surfaceContainer        = Color(0xFF1C1F2A),
+    surfaceContainerLow     = Color(0xFF171B26),
     surfaceContainerLowest  = DarkBgDeep,
 )
 
@@ -132,6 +132,8 @@ data class AppColors(
     val page: Color,
     val card: Color,
     val cardBorder: Color,
+    /** Recessed blocks inside a card: metric tiles, telemetry rows. */
+    val inset: Color,
     val cornerButton: Color,
     val textMuted: Color,
     val gaugeGreen: Color,
@@ -153,10 +155,11 @@ data class AppColors(
 )
 
 internal val ClassicDarkColors = AppColors(
-    page              = Color(0xFF0A0E1A), // Matches values-night/themes.xml
+    page              = DarkBgDeep,
     card              = DarkBgCard,
     cardBorder        = DarkBgCardBorder,
-    cornerButton      = ClassicDarkScheme.surfaceContainerHighest,
+    inset             = DarkBgDeep,
+    cornerButton      = ClassicDarkScheme.surfaceContainerLow,
     textMuted         = DarkTextMuted,
     gaugeGreen        = AccentGreen,
     gaugeOrange       = AccentOrange,
@@ -180,6 +183,7 @@ internal val ClassicLightColors = AppColors(
     page              = Color(0xFFFAFAFA), // Matches the Theme.Material.Light window
     card              = LightBgCard,
     cardBorder        = LightBgCardBorder,
+    inset             = Color(0xFFF6F8FB),
     cornerButton      = ClassicLightScheme.surfaceContainerHighest,
     textMuted         = LightTextMuted,
     gaugeGreen        = AccentGreenLight,
@@ -211,6 +215,7 @@ internal fun dynamicAppColors(scheme: ColorScheme, darkTheme: Boolean) =
     (if (darkTheme) ClassicDarkColors else ClassicLightColors).copy(
         page              = if (darkTheme) scheme.surfaceContainerHighest else scheme.surfaceContainerHigh,
         card              = scheme.surfaceContainerLowest,
+        inset             = scheme.surfaceContainerLow,
         cornerButton      = if (darkTheme) scheme.surfaceContainer else scheme.surfaceContainerLowest,
         cardBorder        = scheme.outlineVariant,
         textMuted         = scheme.outline,

@@ -7,6 +7,7 @@
         Compose draws all UI; this theme only controls the pre-draw window chrome.
     -->
     <style name="Theme.GalaxyBattery" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorBackground">#FAFAFA</item>
         <item name="android:windowBackground">?android:attr/colorBackground</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

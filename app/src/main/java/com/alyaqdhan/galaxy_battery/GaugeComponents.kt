@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -84,7 +85,7 @@ fun HealthGaugeCard(
         ) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(
-                    stringResource(R.string.gauge_title),
+                    stringResource(R.string.gauge_title) + " (SOH)",
                     color = muted,
                     style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.5.sp)
                 )
@@ -106,7 +107,7 @@ fun HealthGaugeCard(
 
             Spacer(Modifier.height(24.dp))
 
-            Box(Modifier.size(190.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(220.dp), contentAlignment = Alignment.Center) {
                 ArcGaugePulsing(
                     progress   = animPct / 100f,
                     amplitude  = amplitude,
@@ -131,6 +132,17 @@ fun HealthGaugeCard(
 
             Spacer(Modifier.height(16.dp))
 
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("0% 위험", color = gaugeRed().copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+                Text("50% 보통", color = muted, style = MaterialTheme.typography.labelSmall)
+                Text("100% 설계", color = gaugeGreen().copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+            }
+
+            Spacer(Modifier.height(12.dp))
+
             Surface(
                 shape  = RoundedCornerShape(10.dp),
                 color  = gaugeColor.copy(alpha = if (isUnsupported) 0.0f else 0.1f),
@@ -147,7 +159,7 @@ fun HealthGaugeCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArcGaugePulsing(
     amplitude: Float,
@@ -156,17 +168,14 @@ fun ArcGaugePulsing(
     modifier: Modifier = Modifier,
     progress: Float = 1f
 ) {
-    Box(modifier = modifier.scale(scaleX = -1f, scaleY = 1f), contentAlignment = Alignment.Center) {
-        CircularWavyProgressIndicator(
-            progress    = { progress },
-            modifier    = Modifier.fillMaxSize(),
-            color       = fillColor,
-            trackColor  = trackColor,
-            stroke      = WavyProgressIndicatorDefaults.circularIndicatorStroke,
-            trackStroke = WavyProgressIndicatorDefaults.circularTrackStroke,
-            amplitude   = { amplitude },
-            wavelength  = WavyProgressIndicatorDefaults.CircularWavelength,
-            waveSpeed   = WavyProgressIndicatorDefaults.CircularWavelength
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(
+            progress = { progress.coerceIn(0f, 1f) },
+            modifier = Modifier.fillMaxSize(),
+            color = fillColor,
+            trackColor = trackColor,
+            strokeWidth = 14.dp,
+            strokeCap = StrokeCap.Round
         )
     }
 }
