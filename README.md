@@ -29,16 +29,16 @@
 
 ## 스크린샷
 
-<div style="display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; align-items: flex-start;">
-  <div style="text-align: center;">
-    <img width="350" alt="폴드3 (Galaxy Z Fold3)" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold4.png" />
-    <div style="margin-top: 8px; font-weight: bold;">폴드3 (Galaxy Z Fold3)</div>
-  </div>
-  <div style="text-align: center;">
-    <img width="350" alt="노트10+ (Galaxy Note10+)" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10.png" />
-    <div style="margin-top: 8px; font-weight: bold;">노트10+ (Galaxy Note10+)</div>
-  </div>
-</div>
+<table>
+  <tr>
+    <td align="center"><img width="350" alt="폴드3" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold4.png" /></td>
+    <td align="center"><img width="350" alt="노트10+" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10.png" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>폴드3 (Galaxy Z Fold3)</b></td>
+    <td align="center"><b>노트10+ (Galaxy Note10+)</b></td>
+  </tr>
+</table>
 
 ## 수집하는 값
 
