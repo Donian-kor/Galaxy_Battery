@@ -20,6 +20,7 @@ import kotlinx.coroutines.withContext
 import com.alyaqdhan.galaxy_battery.data.BatteryRepository
 import com.alyaqdhan.galaxy_battery.viewmodel.FolderState
 import com.alyaqdhan.galaxy_battery.viewmodel.GaugeViewModel
+import com.alyaqdhan.galaxy_battery.viewmodel.LogSheetState
 import com.alyaqdhan.galaxy_battery.viewmodel.DialCodeViewModel
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -47,9 +48,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var isRefreshing     by mutableStateOf(false)                ; private set
     var isLoadingDetail  by mutableStateOf(false)                ; private set
 
-    // Log sheet
-    var allLogEntries  by mutableStateOf<List<DocEntry>>(emptyList()) ; private set
-    var showLogSheet   by mutableStateOf(false)                       ; private set
+    // Log sheet (delegated to LogSheetState)
+    var logSheetState by mutableStateOf(LogSheetState()) ; private set
+    var allLogEntries: List<DocEntry>
+        get() = logSheetState.allLogEntries
+        private set(value) { logSheetState = logSheetState.copy(allLogEntries = value) }
+    var showLogSheet: Boolean
+        get() = logSheetState.showLogSheet
+        private set(value) { logSheetState = logSheetState.copy(showLogSheet = value) }
 
     // Raw log screen
     var rawLogText          by mutableStateOf("")    ; private set
