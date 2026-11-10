@@ -181,13 +181,15 @@ fun HealthGaugeCard(
 
         Spacer(Modifier.height(8.dp))
 
-        // 270° arc gauge
-        Box(
+        // 270° arc gauge + scale markers (right side, vertical)
+        Row(
             Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // 게이지 원형
             Box(
-                Modifier.size(208.dp),
+                Modifier.weight(1f).size(208.dp),
                 contentAlignment = Alignment.Center
             ) {
                 GaugeArc(
@@ -241,37 +243,36 @@ fun HealthGaugeCard(
                     }
                 }
             }
+
+            // 우측 스케일 마커 세로 배치
+            Column(
+                Modifier.weight(0.4f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                ScaleMarker(
+                    modifier    = Modifier.fillMaxWidth(),
+                    title       = stringResource(R.string.gauge_scale_low_title),
+                    description = stringResource(R.string.gauge_scale_low_desc),
+                    color       = gaugeRed()
+                )
+                Spacer(Modifier.height(8.dp))
+                ScaleMarker(
+                    modifier    = Modifier.fillMaxWidth(),
+                    title       = stringResource(R.string.gauge_scale_mid_title),
+                    description = stringResource(R.string.gauge_scale_mid_desc),
+                    color       = gaugeOrange()
+                )
+                Spacer(Modifier.height(8.dp))
+                ScaleMarker(
+                    modifier    = Modifier.fillMaxWidth(),
+                    title       = stringResource(R.string.gauge_scale_high_title),
+                    description = stringResource(R.string.gauge_scale_high_desc),
+                    color       = gaugeGreen()
+                )
+            }
         }
 
-        Spacer(Modifier.height(4.dp))
-        Spacer(Modifier.height(16.dp))
-        HorizontalDivider(color = border.copy(alpha = 0.6f))
-        Spacer(Modifier.height(12.dp))
-
-        // Calibrated scale markers
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            ScaleMarker(
-                modifier    = Modifier.weight(1f),
-                title       = stringResource(R.string.gauge_scale_low_title),
-                description = stringResource(R.string.gauge_scale_low_desc),
-                color       = gaugeRed()
-            )
-            ScaleMarker(
-                modifier    = Modifier.weight(1f),
-                title       = stringResource(R.string.gauge_scale_mid_title),
-                description = stringResource(R.string.gauge_scale_mid_desc),
-                color       = gaugeOrange()
-            )
-            ScaleMarker(
-                modifier    = Modifier.weight(1f),
-                title       = stringResource(R.string.gauge_scale_high_title),
-                description = stringResource(R.string.gauge_scale_high_desc),
-                color       = gaugeGreen()
-            )
-        }
     }
 }
 
@@ -286,7 +287,7 @@ private fun ScaleMarker(
         modifier
             .background(appColors().inset.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
             .border(1.dp, color.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 4.dp, vertical = 6.dp),
+            .padding(horizontal = 6.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
