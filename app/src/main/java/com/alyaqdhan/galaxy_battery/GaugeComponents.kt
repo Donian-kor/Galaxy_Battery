@@ -106,12 +106,6 @@ fun HealthGaugeCard(
     }
 
     val animPct = arcAnimatable.value * 100f
-    val bsohPct = info.bsohPercent?.toFloat()
-    val bsohAnimPct by animateFloatAsState(
-        targetValue = bsohPct ?: 0f,
-        animationSpec = tween(1400, easing = FastOutSlowInEasing),
-        label = "bsoh_gauge"
-    )
 
     val gaugeColor by animateColorAsState(
         targetValue = when {
@@ -125,18 +119,6 @@ fun HealthGaugeCard(
         animationSpec = tween(300),
         label = "gauge_color"
     )
-    val bsohGaugeColor by animateColorAsState(
-        targetValue = when {
-            isLoadingDetail -> gaugeBlue()
-            bsohPct == null -> gaugeGray()
-            bsohPct >= 80f -> gaugeGreen()
-            bsohPct >= 60f -> gaugeOrange()
-            else -> gaugeRed()
-        },
-        animationSpec = tween(300),
-        label = "bsoh_gauge_color"
-    )
-
     val statusLabel = stringResource(
         when {
             isLoadingDetail -> R.string.status_loading
@@ -152,107 +134,22 @@ fun HealthGaugeCard(
     val inset  = appColors().inset
 
     DashboardCard(glow = true) {
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val lowTitle = stringResource(R.string.gauge_scale_low_title)
-            val lowDescription = stringResource(R.string.gauge_scale_low_desc)
-            val midTitle = stringResource(R.string.gauge_scale_mid_title)
-            val midDescription = stringResource(R.string.gauge_scale_mid_desc)
-            val highTitle = stringResource(R.string.gauge_scale_high_title)
-            val highDescription = stringResource(R.string.gauge_scale_high_desc)
-            val bsohLabel = stringResource(R.string.gauge_bsoh_label)
-            val noBsohValue = stringResource(R.string.gauge_bsoh_missing)
-            val compactGaugeSize = minOf(208.dp, (maxWidth - 16.dp) / 2)
-
-            if (maxWidth >= 560.dp) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    LabeledHealthGauge(
-                        modifier = Modifier.width(208.dp),
-                        label = stringResource(R.string.gauge_asoc_label),
-                        gaugeSize = 208.dp,
-                        animPct = animPct,
-                        hasValue = !isUnsupported,
-                        isLoadingDetail = isLoadingDetail,
-                        amplitude = amplitude,
-                        statusLabel = statusLabel,
-                        gaugeColor = gaugeColor,
-                        inset = inset,
-                        border = border
-                    )
-                    LabeledHealthGauge(
-                        modifier = Modifier.width(208.dp),
-                        label = bsohLabel,
-                        gaugeSize = 208.dp,
-                        animPct = bsohAnimPct,
-                        hasValue = bsohPct != null,
-                        isLoadingDetail = isLoadingDetail,
-                        amplitude = amplitude,
-                        emptyLabel = noBsohValue,
-                        gaugeColor = bsohGaugeColor,
-                        inset = inset,
-                        border = border
-                    )
-                    Column(
-                        Modifier.weight(1f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        ScaleMarker(Modifier.fillMaxWidth(), lowTitle, lowDescription, gaugeRed())
-                        Spacer(Modifier.height(8.dp))
-                        ScaleMarker(Modifier.fillMaxWidth(), midTitle, midDescription, gaugeOrange())
-                        Spacer(Modifier.height(8.dp))
-                        ScaleMarker(Modifier.fillMaxWidth(), highTitle, highDescription, gaugeGreen())
-                    }
-                }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        LabeledHealthGauge(
-                            modifier = Modifier.weight(1f),
-                            label = stringResource(R.string.gauge_asoc_label),
-                            gaugeSize = compactGaugeSize,
-                            animPct = animPct,
-                            hasValue = !isUnsupported,
-                            isLoadingDetail = isLoadingDetail,
-                            amplitude = amplitude,
-                            statusLabel = statusLabel,
-                            gaugeColor = gaugeColor,
-                            inset = inset,
-                            border = border
-                        )
-                        LabeledHealthGauge(
-                            modifier = Modifier.weight(1f),
-                            label = bsohLabel,
-                            gaugeSize = compactGaugeSize,
-                            animPct = bsohAnimPct,
-                            hasValue = bsohPct != null,
-                            isLoadingDetail = isLoadingDetail,
-                            amplitude = amplitude,
-                            emptyLabel = noBsohValue,
-                            gaugeColor = bsohGaugeColor,
-                            inset = inset,
-                            border = border
-                        )
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ScaleMarker(Modifier.weight(1f), lowTitle, lowDescription, gaugeRed())
-                        ScaleMarker(Modifier.weight(1f), midTitle, midDescription, gaugeOrange())
-                        ScaleMarker(Modifier.weight(1f), highTitle, highDescription, gaugeGreen())
-                    }
-                }
-            }
-        }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val gaugeSize = minOf(208.dp, maxWidth)
+        LabeledHealthGauge(
+            modifier = Modifier.width(gaugeSize).align(Alignment.TopCenter),
+            label = stringResource(R.string.gauge_asoc_label),
+            gaugeSize = gaugeSize,
+            animPct = animPct,
+            hasValue = !isUnsupported,
+            isLoadingDetail = isLoadingDetail,
+            amplitude = amplitude,
+            statusLabel = statusLabel,
+            gaugeColor = gaugeColor,
+            inset = inset,
+            border = border
+        )
+    }
         Spacer(Modifier.height(12.dp))
         BatteryAssessmentDetails(info, assessment)
 
@@ -468,40 +365,6 @@ private fun HealthGaugeDial(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ScaleMarker(
-    modifier: Modifier,
-    title: String,
-    description: String,
-    color: Color
-) {
-    Column(
-        modifier
-            .background(appColors().inset.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-            .border(1.dp, color.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 6.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            title,
-            color = color,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium
-            ),
-            maxLines = 1
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            description,
-            color = textMuted(),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 

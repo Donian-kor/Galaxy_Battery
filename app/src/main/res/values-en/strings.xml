@@ -118,12 +118,6 @@
     <string name="assessment_converted_cycles">Unofficial converted charge cycles</string>
     <string name="assessment_missing_value">Unavailable</string>
     <string name="gauge_percent_sign" translatable="false">%</string>
-    <string name="gauge_scale_low_title">0~59% Bad</string>
-    <string name="gauge_scale_low_desc">Replacement recommended</string>
-    <string name="gauge_scale_mid_title">60~79% Caution</string>
-    <string name="gauge_scale_mid_desc">Performance degraded</string>
-    <string name="gauge_scale_high_title">80~100% Normal</string>
-    <string name="gauge_scale_high_desc">Factory default</string>
     <string name="gauge_parser_caption">Battery service dump · %1$s parser</string>
 
     <!-- Telemetry card -->

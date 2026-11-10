@@ -27,6 +27,19 @@
   (다이얼 코드는 앱에서 직접 편집 가능)
 - **로그 캐시**: 마지막으로 분석한 결과를 저장해, 같은 로그는 즉시 표시하고 새 파일이 생기면 다시 분석
 
+## 스크린샷
+
+<table>
+  <tr>
+    <td><b>Galaxy Z Fold4 (SM-F926N)</b></td>
+    <td><b>Galaxy Note10 (SM-N976N)</b></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/dashboard_fold4.png" width="300"/></td>
+    <td><img src="screenshots/dashboard_note10.png" width="300"/></td>
+  </tr>
+</table>
+
 ## 수집하는 값
 
 `BatteryParser`가 로그에서 읽어오는 항목입니다. 값이 없으면 화면에 `—`로 표시합니다.
