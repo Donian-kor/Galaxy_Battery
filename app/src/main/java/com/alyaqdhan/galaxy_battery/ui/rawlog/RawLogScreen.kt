@@ -1,4 +1,5 @@
 package com.alyaqdhan.galaxy_battery.ui.rawlog
+import com.alyaqdhan.galaxy_battery.ui.theme.*
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

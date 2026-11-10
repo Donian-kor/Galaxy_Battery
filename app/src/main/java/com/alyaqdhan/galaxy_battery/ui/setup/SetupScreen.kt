@@ -1,4 +1,5 @@
 package com.alyaqdhan.galaxy_battery.ui.setup
+import com.alyaqdhan.galaxy_battery.ui.theme.*
 
 import android.content.ActivityNotFoundException
 import android.content.Intent

@@ -1,4 +1,5 @@
 package com.alyaqdhan.galaxy_battery.ui.main
+import com.alyaqdhan.galaxy_battery.ui.theme.*
 
 import android.content.Intent
 import android.os.Bundle

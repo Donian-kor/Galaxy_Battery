@@ -1,4 +1,5 @@
 package com.alyaqdhan.galaxy_battery
+import com.alyaqdhan.galaxy_battery.ui.theme.*
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
