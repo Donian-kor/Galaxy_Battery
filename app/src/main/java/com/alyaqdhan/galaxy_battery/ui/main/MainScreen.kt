@@ -112,33 +112,36 @@ fun BatteryDashboard(
 
                 Spacer(Modifier.height(16.dp))
 
-                val isNewBattery = !isLoadingDetail && !effectiveInfo.healthUnsupported &&
-                        (effectiveInfo.healthPercent ?: 0) >= 100
-
-                Column(Modifier.padding(horizontal = 16.dp)) {
-                    Box(Modifier.alpha(gaugeAlpha)) {
-                        HealthGaugeCard(
-                            info           = effectiveInfo,
-                            isLoadingDetail = isLoadingDetail,
-                            arcAnimatable  = arcAnimatable,
-                            amplitude      = gaugeAmplitude,
-                            gaugeReplayKey = gaugeReplayKey
-                        )
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    Box(Modifier.alpha(cardAlpha)) {
-                        Column(Modifier.fillMaxWidth()) {
-                            TelemetryCard(effectiveInfo, isLoadingDetail, isNewBattery, gaugeReplayKey)
-                            Spacer(Modifier.height(12.dp))
-                            LogSummaryCard(effectiveInfo, isLoadingDetail)
-                            Spacer(Modifier.height(16.dp))
+                    Column(Modifier.padding(horizontal = 16.dp)) {
+                        Box(Modifier.alpha(gaugeAlpha)) {
+                            HealthGaugeCard(
+                                info           = effectiveInfo,
+                                isLoadingDetail = isLoadingDetail,
+                                arcAnimatable  = arcAnimatable,
+                                amplitude      = gaugeAmplitude,
+                                gaugeReplayKey = gaugeReplayKey
+                            )
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        Box(Modifier.alpha(cardAlpha)) {
+                            Column(Modifier.fillMaxWidth()) {
+                                TelemetryCard(
+                                    info = effectiveInfo,
+                                    isLoadingDetail = isLoadingDetail,
+                                    gaugeReplayKey = gaugeReplayKey
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                LogSummaryCard(effectiveInfo, isLoadingDetail)
+                            }
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        Box(Modifier.alpha(cardAlpha)) {
                             ExportReportButton(
                                 enabled = !isLoadingDetail,
                                 onClick = onExportReport
                             )
                         }
                     }
-                }
 
                 Spacer(Modifier.height(24.dp))
                 DashboardFooter(versionName = BuildConfig.VERSION_NAME)

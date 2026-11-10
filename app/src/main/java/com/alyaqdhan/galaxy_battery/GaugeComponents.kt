@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -140,7 +141,7 @@ fun HealthGaugeCard(
         targetValue = when {
             isLoadingDetail   -> gaugeBlue()
             isUnsupported     -> gaugeGray()
-            animPct >= 90f    -> gaugeGreen()
+            animPct >= 80f    -> gaugeGreen()
             animPct >= 60f    -> gaugeOrange()
             else              -> gaugeRed()
         },
@@ -181,98 +182,135 @@ fun HealthGaugeCard(
 
         Spacer(Modifier.height(8.dp))
 
-        // 270° arc gauge + scale markers (right side, vertical)
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 게이지 원형
-            Box(
-                Modifier.weight(1f).size(208.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                GaugeArc(
-                    progress   = animPct / 100f,
-                    trackColor = border,
-                    fillColor  = gaugeColor,
-                    pulse      = if (isLoadingDetail) amplitude else 1f,
-                    modifier   = Modifier.fillMaxSize()
-                )
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val lowTitle = stringResource(R.string.gauge_scale_low_title)
+            val lowDescription = stringResource(R.string.gauge_scale_low_desc)
+            val midTitle = stringResource(R.string.gauge_scale_mid_title)
+            val midDescription = stringResource(R.string.gauge_scale_mid_desc)
+            val highTitle = stringResource(R.string.gauge_scale_high_title)
+            val highDescription = stringResource(R.string.gauge_scale_high_desc)
+            val compactGaugeSize = minOf(maxWidth, 208.dp)
+
+            if (maxWidth < 360.dp) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            if (isLoadingDetail || isUnsupported) "—"
-                            else animPct.toInt().toString(),
-                            color = textPrimary(),
-                            style = MaterialTheme.typography.displaySmall.copy(
-                                fontFamily = TelemetryFontFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize   = 42.sp
-                            )
-                        )
-                        Text(
-                            stringResource(R.string.gauge_percent_sign),
-                            color = gaugeColor,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontFamily = TelemetryFontFamily,
-                                fontWeight = FontWeight.Medium
-                            )
-                        )
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Surface(
-                        shape  = CircleShape,
-                        color  = inset.copy(alpha = 0.85f),
-                        border = BorderStroke(1.dp, gaugeColor.copy(alpha = 0.4f))
+                    HealthGaugeDial(
+                        modifier = Modifier.size(compactGaugeSize),
+                        animPct = animPct,
+                        isLoadingDetail = isLoadingDetail,
+                        isUnsupported = isUnsupported,
+                        amplitude = amplitude,
+                        statusLabel = statusLabel,
+                        gaugeColor = gaugeColor,
+                        inset = inset,
+                        border = border
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(Modifier.size(6.dp).background(gaugeColor, CircleShape))
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                statusLabel,
-                                color = gaugeColor,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            )
-                        }
+                        ScaleMarker(Modifier.weight(1f), lowTitle, lowDescription, gaugeRed())
+                        ScaleMarker(Modifier.weight(1f), midTitle, midDescription, gaugeOrange())
+                        ScaleMarker(Modifier.weight(1f), highTitle, highDescription, gaugeGreen())
+                    }
+                }
+            } else {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HealthGaugeDial(
+                        modifier = Modifier.weight(1f).size(208.dp),
+                        animPct = animPct,
+                        isLoadingDetail = isLoadingDetail,
+                        isUnsupported = isUnsupported,
+                        amplitude = amplitude,
+                        statusLabel = statusLabel,
+                        gaugeColor = gaugeColor,
+                        inset = inset,
+                        border = border
+                    )
+                    Column(
+                        Modifier.weight(0.4f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        ScaleMarker(Modifier.fillMaxWidth(), lowTitle, lowDescription, gaugeRed())
+                        Spacer(Modifier.height(8.dp))
+                        ScaleMarker(Modifier.fillMaxWidth(), midTitle, midDescription, gaugeOrange())
+                        Spacer(Modifier.height(8.dp))
+                        ScaleMarker(Modifier.fillMaxWidth(), highTitle, highDescription, gaugeGreen())
                     }
                 }
             }
-
-            // 우측 스케일 마커 세로 배치
-            Column(
-                Modifier.weight(0.4f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                ScaleMarker(
-                    modifier    = Modifier.fillMaxWidth(),
-                    title       = stringResource(R.string.gauge_scale_low_title),
-                    description = stringResource(R.string.gauge_scale_low_desc),
-                    color       = gaugeRed()
-                )
-                Spacer(Modifier.height(8.dp))
-                ScaleMarker(
-                    modifier    = Modifier.fillMaxWidth(),
-                    title       = stringResource(R.string.gauge_scale_mid_title),
-                    description = stringResource(R.string.gauge_scale_mid_desc),
-                    color       = gaugeOrange()
-                )
-                Spacer(Modifier.height(8.dp))
-                ScaleMarker(
-                    modifier    = Modifier.fillMaxWidth(),
-                    title       = stringResource(R.string.gauge_scale_high_title),
-                    description = stringResource(R.string.gauge_scale_high_desc),
-                    color       = gaugeGreen()
-                )
-            }
         }
 
+    }
+}
+
+@Composable
+private fun HealthGaugeDial(
+    modifier: Modifier,
+    animPct: Float,
+    isLoadingDetail: Boolean,
+    isUnsupported: Boolean,
+    amplitude: Float,
+    statusLabel: String,
+    gaugeColor: Color,
+    inset: Color,
+    border: Color
+) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        GaugeArc(
+            progress = animPct / 100f,
+            trackColor = border,
+            fillColor = gaugeColor,
+            pulse = if (isLoadingDetail) amplitude else 1f,
+            modifier = Modifier.fillMaxSize()
+        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    if (isLoadingDetail || isUnsupported) "—" else animPct.toInt().toString(),
+                    color = textPrimary(),
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontFamily = TelemetryFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 42.sp
+                    )
+                )
+                Text(
+                    stringResource(R.string.gauge_percent_sign),
+                    color = gaugeColor,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = TelemetryFontFamily,
+                        fontWeight = FontWeight.Medium
+                    )
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            Surface(
+                shape = CircleShape,
+                color = inset.copy(alpha = 0.85f),
+                border = BorderStroke(1.dp, gaugeColor.copy(alpha = 0.4f))
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(Modifier.size(6.dp).background(gaugeColor, CircleShape))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        statusLabel,
+                        color = gaugeColor,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -363,7 +401,6 @@ private fun GaugeArc(
 fun TelemetryCard(
     info: BatteryInfo,
     isLoadingDetail: Boolean = false,
-    isNewBattery: Boolean = false,
     gaugeReplayKey: Int = 0
 ) {
     val cycles     = info.cycleCount
@@ -399,163 +436,96 @@ fun TelemetryCard(
         }
     }
 
-    val wearLabel = stringResource(
-        when {
-            isLoadingDetail                     -> R.string.status_loading
-            cycles == null && measured == null  -> R.string.wear_unavailable
-            isNewBattery                        -> R.string.wear_none
-            health != null && health >= 80      -> R.string.wear_normal
-            health != null && health >= 60      -> R.string.wear_moderate
-            health != null                      -> R.string.wear_high
-            else                                -> R.string.wear_normal
-        }
-    )
-    val wearColor by animateColorAsState(
-        targetValue = when {
-            isLoadingDetail                    -> gaugeBlue()
-            cycles == null && measured == null -> gaugeGray()
-            isNewBattery                       -> gaugeBlue()
-            health != null && health >= 80     -> gaugeGreen()
-            health != null && health >= 60     -> gaugeOrange()
-            health != null                     -> gaugeRed()
-            else                               -> gaugeGreen()
-        },
-        animationSpec = tween(300),
-        label = "wear_color"
-    )
-
     val muted  = textMuted()
     val border = cardBorderColor()
-    val inset  = appColors().inset
 
     DashboardCard {
-        // Card header
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                Modifier
-                    .size(28.dp)
-                    .background(inset, RoundedCornerShape(8.dp))
-                    .border(1.dp, border, RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painterResource(R.drawable.ic_sym_bolt),
-                    contentDescription = null,
-                    tint = gaugeGreen(),
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                stringResource(R.string.telemetry_title),
-                color = textPrimary(),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(Modifier.width(8.dp))
-            Surface(
-                shape  = CircleShape,
-                color  = inset,
-                border = BorderStroke(1.dp, wearColor.copy(alpha = 0.4f))
-            ) {
-                Text(
-                    wearLabel,
-                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-                    color = wearColor,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    maxLines = 1
-                )
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
         BatteryMetaSection(info, isLoadingDetail)
         Spacer(Modifier.height(14.dp))
 
         // Metric tiles
-        Row(
-            Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val cyclesFraction = (cyclesAnim.value / 800f).coerceIn(0f, 1f)
-            MetricTile(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                title    = stringResource(R.string.cycles_metric_title),
-                value    = if (isLoadingDetail || cycles == null) "—"
-                else cyclesAnim.value.toInt().toString(),
-                unit     = stringResource(R.string.cycles_metric_unit),
-                fraction = if (isLoadingDetail) 0f else cyclesFraction,
-                barColor = when {
-                    cyclesFraction < 0.6f -> gaugeGreen()
-                    cyclesFraction < 0.9f -> gaugeOrange()
-                    else                  -> gaugeRed()
-                },
-                footerStart = if (isLoadingDetail) "…"
-                else stringResource(
-                    R.string.cycles_progress,
-                    String.format(Locale.US, "%.1f", cyclesFraction * 100f)
-                ),
-                footerEnd = if (cycles == null) "—"
-                else stringResource(R.string.cycles_warranty, "800"),
-                footerEndColor = muted
-            )
+        val cyclesFraction = (cyclesAnim.value / 800f).coerceIn(0f, 1f)
+        val cyclesMetric = MetricTileData(
+            title = stringResource(R.string.cycles_metric_title),
+            value = if (isLoadingDetail || cycles == null) "—"
+            else cyclesAnim.value.toInt().toString(),
+            unit = stringResource(R.string.cycles_metric_unit),
+            fraction = if (isLoadingDetail) 0f else cyclesFraction,
+            barColor = when {
+                cyclesFraction < 0.6f -> gaugeGreen()
+                cyclesFraction < 0.9f -> gaugeOrange()
+                else -> gaugeRed()
+            },
+            footerStart = if (isLoadingDetail) "…"
+            else stringResource(
+                R.string.cycles_progress,
+                String.format(Locale.US, "%.1f", cyclesFraction * 100f)
+            ),
+            footerEnd = if (cycles == null) "—"
+            else stringResource(R.string.cycles_warranty, "800"),
+            footerEndColor = muted
+        )
 
-            val capacityFraction = when {
-                measured != null && design != null && design > 0 ->
-                    (measured.toFloat() / design).coerceIn(0f, 1f)
-                health != null ->
-                    health / 100f
-                else ->
-                    0f
+        val capacityFraction = when {
+            measured != null && design != null && design > 0 ->
+                (measured.toFloat() / design).coerceIn(0f, 1f)
+            health != null ->
+                health / 100f
+            else ->
+                0f
+        }
+        val capacityBarColor = when {
+            capacityFraction >= 0.9f -> gaugeGreen()
+            capacityFraction >= 0.6f -> gaugeOrange()
+            else -> gaugeRed()
+        }
+        val delta = if (measured != null && design != null) measured - design else null
+
+        val capacityMetric = MetricTileData(
+            title = stringResource(
+                if (info.capacityEstimated) R.string.capacity_metric_title_estimated
+                else R.string.capacity_metric_title
+            ),
+            value = if (isLoadingDetail || measured == null) "—"
+            else capAnim.value.toInt().groupedDigits(),
+            unit = stringResource(R.string.capacity_unit),
+            fraction = if (isLoadingDetail) 0f else capacityFraction,
+            barColor = capacityBarColor,
+            footerStart = when {
+                isLoadingDetail -> "…"
+                design != null -> stringResource(R.string.capacity_design, design.groupedDigits())
+                else -> stringResource(R.string.capacity_no_design)
+            },
+            footerEnd = when {
+                delta == null -> ""
+                delta == 0 -> "0"
+                else -> stringResource(
+                    R.string.capacity_delta,
+                    String.format(Locale.US, "%+,d", delta)
+                )
+            },
+            footerEndColor = when {
+                delta == null -> muted
+                delta < 0 -> gaugeOrange()
+                else -> gaugeGreen()
             }
-            val capacityBarColor = when {
-                capacityFraction >= 0.9f -> gaugeGreen()
-                capacityFraction >= 0.6f -> gaugeOrange()
-                else                     -> gaugeRed()
-            }
-            val delta = if (measured != null && design != null) measured - design else null
+        )
 
-            val capText = if (isLoadingDetail || measured == null) "—"
-            else capAnim.value.toInt().groupedDigits()
-
-            MetricTile(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                title    = stringResource(
-                    if (info.capacityEstimated) R.string.capacity_metric_title_estimated
-                    else R.string.capacity_metric_title
-                ),
-                value          = capText,
-                secondaryValue = null,
-                unit           = stringResource(R.string.capacity_unit),
-                fraction       = if (isLoadingDetail) 0f else capacityFraction,
-                barColor       = capacityBarColor,
-                footerStart    = when {
-                    isLoadingDetail -> "…"
-                    design != null  -> stringResource(R.string.capacity_design, design.groupedDigits())
-                    else            -> stringResource(R.string.capacity_no_design)
-                },
-                footerEnd = when {
-                    delta == null -> ""
-                    delta == 0    -> "0"
-                    else          -> stringResource(
-                        R.string.capacity_delta,
-                        String.format(Locale.US, "%+,d", delta)
-                    )
-                },
-                footerEndColor = when {
-                    delta == null -> muted
-                    delta < 0     -> gaugeOrange()
-                    else          -> gaugeGreen()
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            if (maxWidth < 360.dp) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    MetricTile(Modifier.fillMaxWidth(), cyclesMetric)
+                    MetricTile(Modifier.fillMaxWidth(), capacityMetric)
                 }
-            )
+            } else {
+                Row(
+                    Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricTile(Modifier.weight(1f).fillMaxHeight(), cyclesMetric)
+                    MetricTile(Modifier.weight(1f).fillMaxHeight(), capacityMetric)
+                }
+            }
         }
 
         Spacer(Modifier.height(14.dp))
@@ -636,18 +606,22 @@ fun TelemetryCard(
     }
 }
 
+private data class MetricTileData(
+    val title: String,
+    val value: String,
+    val secondaryValue: String? = null,
+    val unit: String,
+    val fraction: Float,
+    val barColor: Color,
+    val footerStart: String,
+    val footerEnd: String,
+    val footerEndColor: Color
+)
+
 @Composable
 private fun MetricTile(
     modifier: Modifier,
-    title: String,
-    value: String,
-    secondaryValue: String? = null,
-    unit: String,
-    fraction: Float,
-    barColor: Color,
-    footerStart: String,
-    footerEnd: String,
-    footerEndColor: Color
+    data: MetricTileData
 ) {
     val muted  = textMuted()
     val border = cardBorderColor()
@@ -659,7 +633,7 @@ private fun MetricTile(
             .padding(12.dp)
     ) {
         Text(
-            title,
+            data.title,
             color = muted,
             style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 10.sp,
@@ -672,7 +646,7 @@ private fun MetricTile(
         Spacer(Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                value,
+                data.value,
                 color = textPrimary(),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontFamily = TelemetryFontFamily,
@@ -681,9 +655,9 @@ private fun MetricTile(
                 ),
                 maxLines = 1
             )
-            if (secondaryValue != null) {
+            if (data.secondaryValue != null) {
                 Text(
-                    secondaryValue,
+                    data.secondaryValue,
                     color = textSecondary(),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontFamily = TelemetryFontFamily,
@@ -695,7 +669,7 @@ private fun MetricTile(
             }
             Spacer(Modifier.width(4.dp))
             Text(
-                unit,
+                data.unit,
                 color = muted,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1
@@ -710,9 +684,9 @@ private fun MetricTile(
         ) {
             Box(
                 Modifier
-                    .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                    .fillMaxWidth(data.fraction.coerceIn(0f, 1f))
                     .fillMaxHeight()
-                    .background(barColor, RoundedCornerShape(3.dp))
+                    .background(data.barColor, RoundedCornerShape(3.dp))
             )
         }
         Spacer(Modifier.height(6.dp))
@@ -721,7 +695,7 @@ private fun MetricTile(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                footerStart,
+                data.footerStart,
                 color = muted,
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                 maxLines = 1,
@@ -730,8 +704,8 @@ private fun MetricTile(
             )
             Spacer(Modifier.width(4.dp))
             Text(
-                footerEnd,
-                color = footerEndColor,
+                data.footerEnd,
+                color = data.footerEndColor,
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                 maxLines = 1
             )
@@ -750,55 +724,88 @@ private fun BatteryMetaSection(
     val border = cardBorderColor()
     val inset = appColors().inset
 
-    Row(
+    val installedLabel = when {
+        isLoading -> stringResource(R.string.log_pill_loading)
+        installedDate.isNotEmpty() -> stringResource(R.string.battery_installed_on, installedDate)
+        else -> stringResource(R.string.battery_install_unknown)
+    }
+    val monthsLabel = monthsUsed?.let {
+        pluralStringResource(R.plurals.battery_months_used, it, it)
+    }
+
+    BoxWithConstraints(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(inset.copy(alpha = 0.6f))
             .border(1.dp, border, RoundedCornerShape(10.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Icon(
-            painterResource(R.drawable.ic_sym_calendar_month),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(14.dp)
-        )
-        Spacer(Modifier.width(6.dp))
-        Text(
-            when {
-                isLoading -> stringResource(R.string.log_pill_loading)
-                installedDate.isNotEmpty() -> stringResource(R.string.battery_installed_on, installedDate)
-                else -> stringResource(R.string.battery_install_unknown)
-            },
-            color = muted,
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-        if (monthsUsed != null) {
-            Spacer(Modifier.width(8.dp))
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                border = BorderStroke(1.dp, border.copy(alpha = 0.4f))
-            ) {
-                Text(
-                    pluralStringResource(
-                        R.plurals.battery_months_used, monthsUsed, monthsUsed
-                    ),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    maxLines = 1
-                )
+        if (maxWidth < 360.dp) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                BatteryDateIcon()
+                Spacer(Modifier.width(8.dp))
+                Column(
+                    Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    BatteryDateLabel(installedLabel, muted, Modifier.fillMaxWidth())
+                    monthsLabel?.let { BatteryMonthsBadge(it, border) }
+                }
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                BatteryDateIcon()
+                Spacer(Modifier.width(6.dp))
+                BatteryDateLabel(installedLabel, muted, Modifier.weight(1f))
+                monthsLabel?.let {
+                    Spacer(Modifier.width(8.dp))
+                    BatteryMonthsBadge(it, border)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun BatteryDateIcon() {
+    Icon(
+        painterResource(R.drawable.ic_sym_calendar_month),
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.secondary,
+        modifier = Modifier.size(14.dp)
+    )
+}
+
+@Composable
+private fun BatteryDateLabel(text: String, color: Color, modifier: Modifier) {
+    Text(
+        text,
+        color = color,
+        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun BatteryMonthsBadge(text: String, border: Color) {
+    Surface(
+        shape = RoundedCornerShape(4.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        border = BorderStroke(1.dp, border.copy(alpha = 0.4f))
+    ) {
+        Text(
+            text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            maxLines = 1
+        )
     }
 }
 
@@ -814,14 +821,55 @@ private fun VitalRow(
     val muted  = textMuted()
     val border = cardBorderColor()
 
-    Row(
+    BoxWithConstraints(
         Modifier
             .fillMaxWidth()
             .background(appColors().inset.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
             .border(1.dp, border.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
             .padding(horizontal = 10.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
+        if (maxWidth < 320.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                VitalRowLabel(icon, label, chip, chipColor, muted, Modifier.fillMaxWidth())
+                Text(
+                    value,
+                    color = valueColor,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontFamily = TelemetryFontFamily,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                VitalRowLabel(icon, label, chip, chipColor, muted, Modifier.weight(1f))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    value,
+                    color = valueColor,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontFamily = TelemetryFontFamily,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VitalRowLabel(
+    icon: Int,
+    label: String,
+    chip: String?,
+    chipColor: Color,
+    muted: Color,
+    modifier: Modifier
+) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Icon(
             painterResource(icon),
             contentDescription = null,
@@ -840,8 +888,8 @@ private fun VitalRow(
         if (chip != null) {
             Spacer(Modifier.width(6.dp))
             Surface(
-                shape  = RoundedCornerShape(4.dp),
-                color  = chipColor.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(4.dp),
+                color = chipColor.copy(alpha = 0.12f),
                 border = BorderStroke(1.dp, chipColor.copy(alpha = 0.3f))
             ) {
                 Text(
@@ -856,16 +904,6 @@ private fun VitalRow(
                 )
             }
         }
-        Spacer(Modifier.width(8.dp))
-        Text(
-            value,
-            color = valueColor,
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontFamily = TelemetryFontFamily,
-                fontWeight = FontWeight.SemiBold
-            ),
-            maxLines = 1
-        )
     }
 }
 
@@ -898,6 +936,13 @@ fun LogSummaryCard(
         info.readSuccess         -> stringResource(R.string.analysis_no_error)
         info.errorMessage.isNotBlank() -> stringResource(R.string.analysis_error, info.errorMessage)
         else                     -> stringResource(R.string.analysis_no_error)
+    }
+    val asocRaw = info.asocRaw.ifBlank {
+        if (info.healthSource.equals("asoc", ignoreCase = true)) {
+            info.healthPercent?.toString() ?: "—"
+        } else {
+            "—"
+        }
     }
 
     DashboardCard {
@@ -956,39 +1001,6 @@ fun LogSummaryCard(
                         }
                     }
                 }
-                Spacer(Modifier.height(6.dp))
-                // 1. 배터리 건강도 (SOH) 라벨 + 수치
-                Text(
-                    when {
-                        isLoadingDetail -> stringResource(R.string.analysis_body_loading)
-                        info.healthUnsupported -> stringResource(R.string.analysis_body_unsupported)
-                        info.readSuccess -> {
-                            val pct = info.healthPercent ?: 0
-                            "배터리 건강도 (SOH): ${pct}% · 출처: ${info.healthSource.ifBlank { "ASOC" }.uppercase(Locale.US)}"
-                        }
-                        else -> stringResource(R.string.analysis_body_failed)
-                    },
-                    color = textSecondary(),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(Modifier.height(4.dp))
-                // 2. SEC_GAUGE_ASOC 출처 칩
-                Text(
-                    stringResource(R.string.gauge_source_chip, info.healthSource.ifBlank { "ASOC" }.uppercase(Locale.US)),
-                    color = muted,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Medium),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(4.dp))
-                // 3. 배터리 서비스 덤프 파서 명시
-                Text(
-                    stringResource(R.string.analysis_parser_source, info.healthSource.ifBlank { "ASOC" }.uppercase(Locale.US)),
-                    color = muted,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
         }
 
@@ -1010,7 +1022,7 @@ fun LogSummaryCard(
             Text(
                 stringResource(
                     R.string.analysis_raw,
-                    if (isLoadingDetail) "…" else info.asocRaw.ifBlank { "—" },
+                    if (isLoadingDetail) "…" else asocRaw,
                     if (isLoadingDetail) "…" else info.bsohRaw.ifBlank { "—" }
                 ),
                 color = muted,
