@@ -1,4 +1,5 @@
 package com.alyaqdhan.galaxy_battery
+import com.alyaqdhan.galaxy_battery.ui.theme.*
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.animateColorAsState

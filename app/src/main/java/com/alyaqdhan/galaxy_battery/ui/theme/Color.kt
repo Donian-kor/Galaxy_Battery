@@ -1,4 +1,4 @@
-package com.alyaqdhan.galaxy_battery
+package com.alyaqdhan.galaxy_battery.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.background
@@ -43,7 +43,7 @@ val LightTextSecondary = Color(0xFF475569)
 val LightTextMuted     = Color(0xFF64748B)
 
 // ── Classic schemes (Android 11 and below) ────────────────────────────────────
-private val ClassicDarkScheme = darkColorScheme(
+internal val ClassicDarkScheme = darkColorScheme(
     primary              = AccentGreen,
     onPrimary            = Color(0xFF003823),
     primaryContainer     = Color(0xFF00533A),
@@ -80,7 +80,7 @@ private val ClassicDarkScheme = darkColorScheme(
     surfaceContainerLowest  = DarkBgDeep,
 )
 
-private val ClassicLightScheme = lightColorScheme(
+internal val ClassicLightScheme = lightColorScheme(
     primary              = Color(0xFF006B4B),
     onPrimary            = Color.White,
     primaryContainer     = Color(0xFF9CF5C0),
@@ -152,7 +152,7 @@ data class AppColors(
     val scrollbarTrack: Color,
 )
 
-private val ClassicDarkColors = AppColors(
+internal val ClassicDarkColors = AppColors(
     page              = Color(0xFF0A0E1A), // Matches values-night/themes.xml
     card              = DarkBgCard,
     cardBorder        = DarkBgCardBorder,
@@ -176,7 +176,7 @@ private val ClassicDarkColors = AppColors(
     scrollbarTrack    = Color(0xFF1A2740),
 )
 
-private val ClassicLightColors = AppColors(
+internal val ClassicLightColors = AppColors(
     page              = Color(0xFFFAFAFA), // Matches the Theme.Material.Light window
     card              = LightBgCard,
     cardBorder        = LightBgCardBorder,
@@ -207,7 +207,7 @@ private val ClassicLightColors = AppColors(
  * Cards and the corner buttons sit well apart from the page so they read clearly: in dark,
  * near-black cards on a lighter page; in light, white cards on a gray page.
  */
-private fun dynamicAppColors(scheme: ColorScheme, darkTheme: Boolean) =
+internal fun dynamicAppColors(scheme: ColorScheme, darkTheme: Boolean) =
     (if (darkTheme) ClassicDarkColors else ClassicLightColors).copy(
         page              = if (darkTheme) scheme.surfaceContainerHighest else scheme.surfaceContainerHigh,
         card              = scheme.surfaceContainerLowest,
@@ -227,50 +227,7 @@ private fun dynamicAppColors(scheme: ColorScheme, darkTheme: Boolean) =
         scrollbarTrack    = scheme.surfaceContainerHighest,
     )
 
-private val LocalAppColors = staticCompositionLocalOf<AppColors> {
+internal val LocalAppColors = staticCompositionLocalOf<AppColors> {
     error("No AppColors provided: wrap the content in GalaxyBatteryTheme")
 }
 
-// ── Theme composable ──────────────────────────────────────────────────────────
-@Composable
-fun GalaxyBatteryTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
-) {
-    val context = LocalContext.current
-    val colorScheme: ColorScheme
-    val appColors: AppColors
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        colorScheme = systemColorScheme(context, darkTheme)
-        appColors   = dynamicAppColors(colorScheme, darkTheme)
-    } else {
-        colorScheme = if (darkTheme) ClassicDarkScheme else ClassicLightScheme
-        appColors   = if (darkTheme) ClassicDarkColors else ClassicLightColors
-    }
-
-    MaterialTheme(colorScheme = colorScheme) {
-        CompositionLocalProvider(LocalAppColors provides appColors) {
-            // No screen paints its own background, so this is the page color app-wide.
-            Box(Modifier.fillMaxSize().background(appColors.page)) { content() }
-        }
-    }
-}
-
-// ── Theme-aware color helpers (call inside Composition) ───────────────────────
-@Composable fun appColors()             = LocalAppColors.current
-@Composable fun cardColor()             = appColors().card
-@Composable fun cardBorderColor()       = appColors().cardBorder
-@Composable fun cornerButtonColor()     = appColors().cornerButton
-@Composable fun textPrimary()           = MaterialTheme.colorScheme.onBackground
-@Composable fun textSecondary()         = MaterialTheme.colorScheme.onSurfaceVariant
-@Composable fun textMuted()             = appColors().textMuted
-@Composable fun accentGreenEffective()  = MaterialTheme.colorScheme.primary
-@Composable fun warningColor()          = appColors().warning
-@Composable fun refreshIndicatorColor() = appColors().refreshIndicator
-
-@Composable fun gaugeGreen()  = appColors().gaugeGreen
-@Composable fun gaugeOrange() = appColors().gaugeOrange
-@Composable fun gaugeRed()    = appColors().gaugeRed
-@Composable fun gaugeBlue()   = appColors().gaugeBlue
-@Composable fun gaugeGray()   = appColors().gaugeGray
