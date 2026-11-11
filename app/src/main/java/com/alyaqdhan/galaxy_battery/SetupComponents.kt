@@ -1,14 +1,9 @@
 package com.alyaqdhan.galaxy_battery
 import com.alyaqdhan.galaxy_battery.ui.theme.*
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -21,20 +16,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathMeasure
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -45,82 +28,14 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 
-/**
- * The app's mark: a battery with a heartbeat through it, on the same wavy edge as the health
- * gauge. It's drawn rather than loaded so it takes the theme's colors and the pulse can trace
- * itself in. Direction-neutral, so it reads the same way in any locale.
- *
- * The depth comes from the glow, not from Modifier.shadow: on Android 10 a shadow around this
- * concave edge makes the render thread hang.
- */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppLogo(modifier: Modifier = Modifier) {
-    val primary   = MaterialTheme.colorScheme.primary
-    val onPrimary = MaterialTheme.colorScheme.onPrimary
-    val badge     = MaterialShapes.Cookie12Sided.toShape()
-
-    val pop   = remember { Animatable(0.7f) }
-    val trace = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        launch { pop.animateTo(1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow)) }
-        trace.animateTo(1f, tween(1000, delayMillis = 250, easing = FastOutSlowInEasing))
-    }
-
-    Canvas(
-        modifier
-            .size(72.dp)
-            .drawBehind {
-                // Reaches past the badge without taking up layout space around it
-                val radius = size.minDimension * 0.69f
-                drawCircle(
-                    Brush.radialGradient(listOf(primary.copy(alpha = 0.24f), Color.Transparent), center, radius),
-                    radius
-                )
-            }
-            .graphicsLayer {
-                scaleX = pop.value
-                scaleY = pop.value
-            }
-            .background(Brush.linearGradient(listOf(primary, lerp(primary, onPrimary, 0.24f))), badge)
-    ) {
-        val unit = size.minDimension / 100f
-
-        // Battery body and terminal
-        drawRoundRect(
-            color        = onPrimary,
-            topLeft      = Offset(22f * unit, 34f * unit),
-            size         = Size(50f * unit, 32f * unit),
-            cornerRadius = CornerRadius(9f * unit),
-            style        = Stroke(width = 4.6f * unit)
-        )
-        drawRoundRect(
-            color        = onPrimary,
-            topLeft      = Offset(75.5f * unit, 44f * unit),
-            size         = Size(4f * unit, 12f * unit),
-            cornerRadius = CornerRadius(2f * unit)
-        )
-
-        // Heartbeat
-        val pulse = Path().apply {
-            moveTo(29f * unit, 50f * unit)
-            lineTo(39f * unit, 50f * unit)
-            lineTo(44f * unit, 41f * unit)
-            lineTo(51f * unit, 59f * unit)
-            lineTo(56f * unit, 50f * unit)
-            lineTo(65f * unit, 50f * unit)
-        }
-        val measure = PathMeasure().apply { setPath(pulse, false) }
-        val traced  = Path()
-        measure.getSegment(0f, measure.length * trace.value, traced, true)
-        drawPath(
-            path  = traced,
-            color = onPrimary,
-            style = Stroke(width = 3.8f * unit, cap = StrokeCap.Round, join = StrokeJoin.Round)
-        )
-    }
+    Image(
+        painter = painterResource(R.mipmap.ic_launcher),
+        contentDescription = null,
+        modifier = modifier.size(72.dp)
+    )
 }
 
 /** The card every Setup section sits in, matching the Dashboard's cards. */
@@ -315,5 +230,4 @@ fun FolderAccess(
         }
     }
 }
-
 

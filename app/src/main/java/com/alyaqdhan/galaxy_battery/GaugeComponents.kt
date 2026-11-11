@@ -33,6 +33,20 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import java.util.Locale
 
+private fun BatteryHealthAssessment.gradeLabelResource(): Int = when (grade) {
+    BatteryHealthGrade.GOOD -> R.string.assessment_grade_good
+    BatteryHealthGrade.NORMAL -> R.string.assessment_grade_normal
+    BatteryHealthGrade.WEAK -> R.string.assessment_grade_weak
+    BatteryHealthGrade.BAD -> when (badReason) {
+        BatteryHealthBadReason.END_OF_LIFE -> R.string.assessment_grade_bad_end_of_life
+        BatteryHealthBadReason.EARLY_DEGRADATION -> R.string.assessment_grade_bad_early_degradation
+        null -> R.string.assessment_grade_bad
+    }
+    BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE -> R.string.assessment_grade_diagnostic_unavailable
+    BatteryHealthGrade.CALCULATION_UNAVAILABLE -> R.string.assessment_grade_calculation_unavailable
+    BatteryHealthGrade.UNDETERMINED -> R.string.assessment_grade_undetermined
+}
+
 // ── Shared card shell ─────────────────────────────────────────────────────────
 
 /** The dashboard's card: fixed border, recessed page-colored blocks inside it. */
@@ -86,9 +100,9 @@ fun HealthGaugeCard(
     gaugeReplayKey: Int = 0
 ) {
     val assessment = BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue)
-    val asocPercent = info.asocValue?.takeIf { it in 1..100 }
-    val isUnsupported = asocPercent == null
-    val targetPct = asocPercent?.toFloat() ?: 0f
+    val diagnosticIndexRange = assessment.diagnosticIndexRange
+    val isUnsupported = diagnosticIndexRange == null
+    val targetPct = diagnosticIndexRange?.last?.toFloat() ?: 0f
 
     LaunchedEffect(isLoadingDetail, targetPct, gaugeReplayKey) {
         if (isLoadingDetail) {
@@ -122,11 +136,7 @@ fun HealthGaugeCard(
     val statusLabel = stringResource(
         when {
             isLoadingDetail -> R.string.status_loading
-            assessment.grade == BatteryHealthGrade.GOOD -> R.string.assessment_grade_good
-            assessment.grade == BatteryHealthGrade.NORMAL -> R.string.assessment_grade_normal
-            assessment.grade == BatteryHealthGrade.WEAK -> R.string.assessment_grade_weak
-            assessment.grade == BatteryHealthGrade.BAD -> R.string.assessment_grade_bad
-            else -> R.string.assessment_grade_undetermined
+            else -> assessment.gradeLabelResource()
         }
     )
 
@@ -136,11 +146,11 @@ fun HealthGaugeCard(
     DashboardCard(glow = true) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val gaugeSize = minOf(208.dp, maxWidth)
-        LabeledHealthGauge(
+        HealthGauge(
             modifier = Modifier.width(gaugeSize).align(Alignment.TopCenter),
-            label = stringResource(R.string.gauge_asoc_label),
             gaugeSize = gaugeSize,
             animPct = animPct,
+            diagnosticIndexRange = diagnosticIndexRange,
             hasValue = !isUnsupported,
             isLoadingDetail = isLoadingDetail,
             amplitude = amplitude,
@@ -160,20 +170,14 @@ fun HealthGaugeCard(
 private fun BatteryAssessmentDetails(
     assessment: BatteryHealthAssessment
 ) {
-    val gradeText = stringResource(
-        when (assessment.grade) {
-            BatteryHealthGrade.GOOD -> R.string.assessment_grade_good
-            BatteryHealthGrade.NORMAL -> R.string.assessment_grade_normal
-            BatteryHealthGrade.WEAK -> R.string.assessment_grade_weak
-            BatteryHealthGrade.BAD -> R.string.assessment_grade_bad
-            BatteryHealthGrade.UNDETERMINED -> R.string.assessment_grade_undetermined
-        }
-    )
+    val gradeText = stringResource(assessment.gradeLabelResource())
     val gradeColor = when (assessment.grade) {
         BatteryHealthGrade.GOOD -> gaugeGreen()
         BatteryHealthGrade.NORMAL -> gaugeYellow()
         BatteryHealthGrade.WEAK -> gaugeOrange()
         BatteryHealthGrade.BAD -> gaugeRed()
+        BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE,
+        BatteryHealthGrade.CALCULATION_UNAVAILABLE,
         BatteryHealthGrade.UNDETERMINED -> gaugeGray()
     }
     Surface(
@@ -209,11 +213,11 @@ private fun BatteryAssessmentDetails(
 }
 
 @Composable
-private fun LabeledHealthGauge(
+private fun HealthGauge(
     modifier: Modifier,
-    label: String,
     gaugeSize: Dp,
     animPct: Float,
+    diagnosticIndexRange: IntRange?,
     hasValue: Boolean,
     isLoadingDetail: Boolean,
     amplitude: Float,
@@ -224,16 +228,10 @@ private fun LabeledHealthGauge(
     emptyLabel: String? = null
 ) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            label,
-            color = textSecondary(),
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-            maxLines = 1
-        )
-        Spacer(Modifier.height(4.dp))
         HealthGaugeDial(
             modifier = Modifier.size(gaugeSize),
             animPct = animPct,
+            diagnosticIndexRange = diagnosticIndexRange,
             hasValue = hasValue,
             isLoadingDetail = isLoadingDetail,
             amplitude = amplitude,
@@ -250,6 +248,7 @@ private fun LabeledHealthGauge(
 private fun HealthGaugeDial(
     modifier: Modifier,
     animPct: Float,
+    diagnosticIndexRange: IntRange?,
     hasValue: Boolean,
     isLoadingDetail: Boolean,
     amplitude: Float,
@@ -270,10 +269,16 @@ private fun HealthGaugeDial(
         )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (hasValue || isLoadingDetail) {
-                val valueFontSize = (dialWidth.value * 0.22f).coerceIn(22f, 42f).sp
+                val valueFontSize = if (diagnosticIndexRange != null) {
+                    (dialWidth.value * 0.14f).coerceIn(18f, 28f).sp
+                } else {
+                    (dialWidth.value * 0.22f).coerceIn(22f, 42f).sp
+                }
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        if (isLoadingDetail) "—" else animPct.toInt().toString(),
+                        if (isLoadingDetail) "—"
+                        else diagnosticIndexRange?.let { "${it.first}–${it.last}" }
+                            ?: animPct.toInt().toString(),
                         color = textPrimary(),
                         style = MaterialTheme.typography.displaySmall.copy(
                             fontFamily = TelemetryFontFamily,

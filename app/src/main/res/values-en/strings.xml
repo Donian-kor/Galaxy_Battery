@@ -112,6 +112,10 @@
     <string name="assessment_grade_normal">Fair</string>
     <string name="assessment_grade_weak">Caution</string>
     <string name="assessment_grade_bad">Bad</string>
+    <string name="assessment_grade_bad_end_of_life">Bad (end of life)</string>
+    <string name="assessment_grade_bad_early_degradation">Bad (early degradation)</string>
+    <string name="assessment_grade_diagnostic_unavailable">Diagnosis unavailable</string>
+    <string name="assessment_grade_calculation_unavailable">Calculation unavailable</string>
     <string name="assessment_grade_undetermined">Undetermined</string>
     <string name="assessment_asoc_raw">Original ASOC</string>
     <string name="assessment_usage_raw">Original Battery Usage</string>

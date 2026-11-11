@@ -68,15 +68,23 @@ class BatteryHealthClassifierTest {
         assertEquals(cycles, assessment.convertedCycles)
     }
 
+    private fun assertScore(asoc: Int, cycles: Int, expectedGrade: BatteryHealthGrade, expectedScore: Int) {
+        val assessment = BatteryHealthClassifier.assess(asoc, cycles * 100)
+        assertEquals(expectedGrade, assessment.grade)
+        assertEquals(expectedScore, assessment.score)
+    }
+
     @Test
     fun `asoc 85 boundaries`() {
+        assertGrade(85, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
+        assertGrade(85, 30, BatteryHealthGrade.GOOD)
         assertGrade(85, 1199, BatteryHealthGrade.GOOD)
         assertGrade(85, 1200, BatteryHealthGrade.WEAK)
     }
 
     @Test
     fun `asoc 84 boundaries`() {
-        assertGrade(84, 29, BatteryHealthGrade.GOOD)
+        assertGrade(84, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
         assertGrade(84, 30, BatteryHealthGrade.BAD)
         assertGrade(84, 349, BatteryHealthGrade.BAD)
         assertGrade(84, 350, BatteryHealthGrade.GOOD)
@@ -110,7 +118,7 @@ class BatteryHealthClassifierTest {
 
     @Test
     fun `asoc 79 boundaries`() {
-        assertGrade(79, 29, BatteryHealthGrade.GOOD)
+        assertGrade(79, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
         assertGrade(79, 30, BatteryHealthGrade.BAD)
         assertGrade(79, 500, BatteryHealthGrade.BAD)
         assertGrade(79, 501, BatteryHealthGrade.NORMAL)
@@ -120,7 +128,7 @@ class BatteryHealthClassifierTest {
 
     @Test
     fun `asoc 66 boundaries`() {
-        assertGrade(66, 29, BatteryHealthGrade.GOOD)
+        assertGrade(66, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
         assertGrade(66, 30, BatteryHealthGrade.BAD)
         assertGrade(66, 500, BatteryHealthGrade.BAD)
         assertGrade(66, 501, BatteryHealthGrade.NORMAL)
@@ -128,20 +136,51 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `asoc 65 is weak for every cycle count`() {
-        assertGrade(65, 0, BatteryHealthGrade.WEAK)
-        assertGrade(65, 500, BatteryHealthGrade.WEAK)
+    fun `cycle under 30 takes priority over other conditions`() {
+        assertGrade(55, 0, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
+        assertGrade(0, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
+    }
+
+    @Test
+    fun `asoc minus one and zero cannot be calculated from cycle 30 onward`() {
+        for (asoc in listOf(-1, 0)) {
+            assertGrade(asoc, 30, BatteryHealthGrade.CALCULATION_UNAVAILABLE)
+            assertGrade(asoc, 1200, BatteryHealthGrade.CALCULATION_UNAVAILABLE)
+        }
+    }
+
+    @Test
+    fun `asoc 55 and below is end of life only from 1200 cycles`() {
+        assertGrade(55, 30, BatteryHealthGrade.WEAK)
+        assertGrade(55, 1199, BatteryHealthGrade.WEAK)
+        assertGrade(55, 1200, BatteryHealthGrade.BAD)
+        assertEquals(
+            BatteryHealthBadReason.END_OF_LIFE,
+            BatteryHealthClassifier.assess(55, 120000).badReason
+        )
+    }
+
+    @Test
+    fun `asoc 56 through 65 is weak below 1200 cycles`() {
+        assertGrade(56, 30, BatteryHealthGrade.WEAK)
+        assertGrade(65, 1199, BatteryHealthGrade.WEAK)
         assertGrade(65, 1200, BatteryHealthGrade.WEAK)
     }
 
     @Test
-    fun `unknown asoc uses cycles only`() {
-        for (asoc in listOf(null, -1, 0)) {
-            assertGrade(asoc, 900, BatteryHealthGrade.GOOD)
-            assertGrade(asoc, 901, BatteryHealthGrade.NORMAL)
-            assertGrade(asoc, 1200, BatteryHealthGrade.NORMAL)
-            assertGrade(asoc, 1201, BatteryHealthGrade.BAD)
-        }
+    fun `early degradation bad has a distinct reason`() {
+        assertEquals(
+            BatteryHealthBadReason.EARLY_DEGRADATION,
+            BatteryHealthClassifier.assess(79, 3000).badReason
+        )
+    }
+
+    @Test
+    fun `missing asoc is only classified when the cycle rule determines it`() {
+        assertGrade(null, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
+        assertGrade(null, 30, BatteryHealthGrade.UNDETERMINED)
+        assertGrade(null, 1199, BatteryHealthGrade.UNDETERMINED)
+        assertGrade(null, 1200, BatteryHealthGrade.WEAK)
     }
 
     @Test
@@ -167,5 +206,23 @@ class BatteryHealthClassifierTest {
 
         assertEquals(BatteryHealthGrade.UNDETERMINED, assessment.grade)
         assertNull(assessment.convertedCycles)
+        assertNull(assessment.diagnosticIndexRange)
+    }
+
+    @Test
+    fun `final grade maps to its diagnostic index range`() {
+        assertEquals(0..49, BatteryHealthClassifier.assess(79, 3000).diagnosticIndexRange)
+        assertEquals(50..69, BatteryHealthClassifier.assess(84, 120000).diagnosticIndexRange)
+        assertEquals(70..84, BatteryHealthClassifier.assess(73, 97034).diagnosticIndexRange)
+        assertEquals(85..100, BatteryHealthClassifier.assess(85, 3000).diagnosticIndexRange)
+    }
+
+    @Test
+    fun `score formulas match the expected values`() {
+        assertScore(73, 970, BatteryHealthGrade.NORMAL, 76)
+        assertScore(84, 1699, BatteryHealthGrade.WEAK, 64)
+        assertScore(90, 300, BatteryHealthGrade.GOOD, 95)
+        assertScore(73, 200, BatteryHealthGrade.BAD, 30)
+        assertScore(50, 2000, BatteryHealthGrade.BAD, 13)
     }
 }

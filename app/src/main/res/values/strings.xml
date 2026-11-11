@@ -112,6 +112,10 @@
     <string name="assessment_grade_normal">보통</string>
     <string name="assessment_grade_weak">주의</string>
     <string name="assessment_grade_bad">나쁨</string>
+    <string name="assessment_grade_bad_end_of_life">나쁨 (수명 종료)</string>
+    <string name="assessment_grade_bad_early_degradation">나쁨 (조기 열화)</string>
+    <string name="assessment_grade_diagnostic_unavailable">진단 불가</string>
+    <string name="assessment_grade_calculation_unavailable">산정 불가</string>
     <string name="assessment_grade_undetermined">판정 불가</string>
     <string name="assessment_asoc_raw">ASOC 원본값</string>
     <string name="assessment_usage_raw">Battery Usage 원본값</string>
