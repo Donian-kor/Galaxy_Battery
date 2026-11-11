@@ -107,7 +107,7 @@
     <string name="gauge_bsoh_label">BSOH</string>
     <string name="gauge_bsoh_missing">None</string>
     <string name="assessment_title">Battery health assessment</string>
-    <string name="assessment_disclaimer">App-internal rule · Not an official Samsung diagnosis</string>
+    <string name="assessment_disclaimer">In-house developed engine · Not an official Samsung diagnosis</string>
     <string name="assessment_grade_good">Normal</string>
     <string name="assessment_grade_normal">Fair</string>
     <string name="assessment_grade_weak">Caution</string>

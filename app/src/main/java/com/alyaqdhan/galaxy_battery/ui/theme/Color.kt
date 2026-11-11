@@ -15,17 +15,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 // ── Accent palette ────────────────────────────────────────────────────────────
-val AccentGreen  = Color(0xFF00E5A0)
-val AccentYellow = Color(0xFFFFD54F)
-val AccentOrange = Color(0xFFFFAA44)
-val AccentRed    = Color(0xFFFF5C6C)
+val AccentGreen  = Color(0xFF27AD78)
+val AccentYellow = Color(0xFFD6B84F)
+val AccentOrange = Color(0xFFF97316)
+val AccentRed    = Color(0xFFDC4545)
 val AccentBlue   = Color(0xFF4DA6FF)
 
 // Darker variants for light theme gauge contrast
-val AccentGreenLight  = Color(0xFF007A50)
-val AccentYellowLight = Color(0xFF9A6700)
-val AccentOrangeLight = Color(0xFFB85C00)
-val AccentRedLight    = Color(0xFFB52233)
+val AccentGreenLight  = Color(0xFF27AD78)
+val AccentYellowLight = Color(0xFFD6B84F)
+val AccentOrangeLight = Color(0xFFF97316)
+val AccentRedLight    = Color(0xFFDC4545)
 val AccentBlueLight   = Color(0xFF1A5FAA)
 
 // ── Dark surface palette (fixed brand palette, from the dashboard design) ─────
