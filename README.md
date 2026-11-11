@@ -7,7 +7,7 @@
 
 <table>
   <tr>
-    <td align="center"><img width="450" alt="폴드3" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold4.png" /></td>
+    <td align="center"><img width="450" alt="폴드3" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold3.png" /></td>
     <td align="center"><img width="250" alt="노트10+" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10.png" /></td>
   </tr>
   <tr>
