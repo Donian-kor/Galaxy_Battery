@@ -151,14 +151,13 @@ fun HealthGaugeCard(
         )
     }
         Spacer(Modifier.height(12.dp))
-        BatteryAssessmentDetails(info, assessment)
+        BatteryAssessmentDetails(assessment)
 
     }
 }
 
 @Composable
 private fun BatteryAssessmentDetails(
-    info: BatteryInfo,
     assessment: BatteryHealthAssessment
 ) {
     val gradeText = stringResource(
@@ -177,8 +176,6 @@ private fun BatteryAssessmentDetails(
         BatteryHealthGrade.BAD -> gaugeRed()
         BatteryHealthGrade.UNDETERMINED -> gaugeGray()
     }
-    val missingValue = stringResource(R.string.assessment_missing_value)
-
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = appColors().inset,
@@ -207,45 +204,7 @@ private fun BatteryAssessmentDetails(
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                 )
             }
-            Spacer(Modifier.height(8.dp))
-            HorizontalDivider(color = cardBorderColor())
-            Spacer(Modifier.height(8.dp))
-            AssessmentValueRow(
-                stringResource(R.string.assessment_asoc_raw),
-                info.asocRaw.ifBlank { missingValue }
-            )
-            AssessmentValueRow(
-                stringResource(R.string.assessment_usage_raw),
-                info.usageRaw.ifBlank { missingValue }
-            )
-            AssessmentValueRow(
-                stringResource(R.string.assessment_converted_cycles),
-                assessment.convertedCycles?.toString() ?: missingValue
-            )
         }
-    }
-}
-
-@Composable
-private fun AssessmentValueRow(label: String, value: String) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            label,
-            modifier = Modifier.weight(1f),
-            color = textSecondary(),
-            style = MaterialTheme.typography.bodySmall
-        )
-        Text(
-            value,
-            color = textPrimary(),
-            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-            textAlign = TextAlign.End,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
