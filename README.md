@@ -8,7 +8,7 @@
 <table>
   <tr>
     <td align="center"><img width="450" alt="폴드3" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold3.png" /></td>
-    <td align="center"><img width="250" alt="노트10+" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10.png" /></td>
+    <td align="center"><img width="250" alt="노트10+" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10plus.png" /></td>
   </tr>
   <tr>
     <td align="center"><b>폴드3 (Galaxy Z Fold3)</b></td>
@@ -29,7 +29,7 @@
 - 최소 요구: Android 8.0 (minSdk 26) / 대상 SDK 37
 
 > [!IMPORTANT]
-> 이 앱은 공식 Samsung 앱이 아닙니다. 
+> 이 앱은 공식 Samsung 앱이 아닙니다.
 > 배터리 건강도 판정과 환산 사이클은 앱 내부 계산 기준의 참고값입니다.
 > 배터리 진단 결과는 기기에서 사용할 수 있는 로그 파일에 따라 달라지며, 삼성 공식 진단 결과가 아닙니다.
 > 모든 데이터는 기기 안에서만 처리되고 외부로 전송되지 않습니다.

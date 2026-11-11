@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun AppLogo(modifier: Modifier = Modifier) {
     Image(
-        painter = painterResource(R.mipmap.ic_launcher),
+        painter = painterResource(R.mipmap.ic_launcher_foreground),
         contentDescription = null,
         modifier = modifier.size(72.dp)
     )

@@ -100,9 +100,9 @@ fun HealthGaugeCard(
     gaugeReplayKey: Int = 0
 ) {
     val assessment = BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue)
-    val diagnosticIndexRange = assessment.diagnosticIndexRange
-    val isUnsupported = diagnosticIndexRange == null
-    val targetPct = diagnosticIndexRange?.last?.toFloat() ?: 0f
+    val diagnosticScore = assessment.score
+    val isUnsupported = diagnosticScore == null
+    val targetPct = diagnosticScore?.toFloat() ?: 0f
 
     LaunchedEffect(isLoadingDetail, targetPct, gaugeReplayKey) {
         if (isLoadingDetail) {
@@ -150,7 +150,7 @@ fun HealthGaugeCard(
             modifier = Modifier.width(gaugeSize).align(Alignment.TopCenter),
             gaugeSize = gaugeSize,
             animPct = animPct,
-            diagnosticIndexRange = diagnosticIndexRange,
+            diagnosticScore = diagnosticScore,
             hasValue = !isUnsupported,
             isLoadingDetail = isLoadingDetail,
             amplitude = amplitude,
@@ -217,7 +217,7 @@ private fun HealthGauge(
     modifier: Modifier,
     gaugeSize: Dp,
     animPct: Float,
-    diagnosticIndexRange: IntRange?,
+    diagnosticScore: Int?,
     hasValue: Boolean,
     isLoadingDetail: Boolean,
     amplitude: Float,
@@ -231,7 +231,7 @@ private fun HealthGauge(
         HealthGaugeDial(
             modifier = Modifier.size(gaugeSize),
             animPct = animPct,
-            diagnosticIndexRange = diagnosticIndexRange,
+            diagnosticScore = diagnosticScore,
             hasValue = hasValue,
             isLoadingDetail = isLoadingDetail,
             amplitude = amplitude,
@@ -248,7 +248,7 @@ private fun HealthGauge(
 private fun HealthGaugeDial(
     modifier: Modifier,
     animPct: Float,
-    diagnosticIndexRange: IntRange?,
+    diagnosticScore: Int?,
     hasValue: Boolean,
     isLoadingDetail: Boolean,
     amplitude: Float,
@@ -269,16 +269,11 @@ private fun HealthGaugeDial(
         )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (hasValue || isLoadingDetail) {
-                val valueFontSize = if (diagnosticIndexRange != null) {
-                    (dialWidth.value * 0.14f).coerceIn(18f, 28f).sp
-                } else {
-                    (dialWidth.value * 0.22f).coerceIn(22f, 42f).sp
-                }
+                val valueFontSize = (dialWidth.value * 0.22f).coerceIn(22f, 42f).sp
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         if (isLoadingDetail) "—"
-                        else diagnosticIndexRange?.let { "${it.first}–${it.last}" }
-                            ?: animPct.toInt().toString(),
+                        else diagnosticScore?.toString() ?: "—",
                         color = textPrimary(),
                         style = MaterialTheme.typography.displaySmall.copy(
                             fontFamily = TelemetryFontFamily,

@@ -107,7 +107,7 @@
     <string name="gauge_bsoh_label">BSOH</string>
     <string name="gauge_bsoh_missing">없음</string>
     <string name="assessment_title">배터리 건강도 판정</string>
-    <string name="assessment_disclaimer">앱 내부 판정 · 삼성 공식 진단 아님</string>
+    <string name="assessment_disclaimer">앱 자체 판정 공식 적용 · 삼성 공식 진단 아님</string>
     <string name="assessment_grade_good">정상</string>
     <string name="assessment_grade_normal">보통</string>
     <string name="assessment_grade_weak">주의</string>
