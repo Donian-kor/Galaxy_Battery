@@ -25,7 +25,7 @@
 
 - 앱 이름: 갤럭시 배터리 정보
 - 패키지: `com.alyaqdhan.galaxy_battery`
-- 버전: 2.2 (versionCode 20200)
+- 버전: 2.2.1 (versionCode 20201)
 - 최소 요구: Android 8.0 (minSdk 26) / 대상 SDK 37
 
 > [!IMPORTANT]
