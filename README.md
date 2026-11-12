@@ -16,12 +16,23 @@
   </tr>
 </table>
 
-## 지원 시리즈
+## 지원 기종
 
-- Galaxy S: S10, S20, S21, S22, S23, S25, S26
-- Galaxy Z Fold: Fold 1, Fold 2, Fold 3, Fold 4, Fold 5, Fold 6, Fold 7, Fold 8
-- Galaxy Z Flip: Flip 1, Flip 3, Flip 4, Flip 5, Flip 6, Flip 7, Flip 8
-- Galaxy Note: Note10, Note10+, Note20
+`parser/DesignCapacityTable.kt`에 등록된 설계 용량 조회 기준입니다. 목록에 없어도 로그에
+값이 있으면 동작하지만, 설계 용량 추정과 일부 표기가 비어 있을 수 있습니다.
+
+| 계열 | 등록된 모델 |
+|---|---|
+| Galaxy S | S10, S10e, S10+, S10 5G, S20, S20+, S20 Ultra, S20 FE, S21, S21+, S21 Ultra, S21 FE, S22, S22+, S22 Ultra, S23, S23+, S23 Ultra, S23 FE, S25, S25+, S25 Ultra, S26, S26+, S26 Ultra |
+| Galaxy Z Fold | Fold 1, Fold 2, Fold 3, Fold 4, Fold 5, Fold 6, Fold 7, Fold 8 |
+| Galaxy Z Flip | Flip 1, Flip 3, Flip 4, Flip 5, Flip 6, Flip 7, Flip 8 |
+| Galaxy Note | Note 10, Note 10+, Note 10+ 5G, Note 20, Note 20 Ultra |
+
+> [!NOTE]
+> S24 시리즈는 아직 등록되지 않았습니다. S24·S25·S26 코드가 겹치지 않아 추가만 하면 됩니다.
+>
+> 이 표는 **설계 용량 조회용**이며, 배터리 건강도 판정 자체는 모델과 무관하게
+> 로그의 ASOC·BSOH·Battery Usage 값만으로 동작합니다.
 
 - 앱 이름: 갤럭시 배터리 정보
 - 패키지: `com.donian.galaxy_battery`
@@ -38,6 +49,8 @@
 
 - **배터리 건강도 판정**: ASOC와 Battery Usage를 사용하는 앱 내부 등급입니다.
   원본 Battery Usage를 100으로 나눈 환산 사이클은 비공식 값이며 삼성 공식 진단식이 아닙니다.
+- **종합 진단 점수**: 등급별 공식으로 0~100 점수를 산정해 게이지로 표시합니다.
+  BSOH·ASOC 중 어떤 값을 썼는지 카드 우측에 함께 표시합니다.
 - **충전 사이클**: 마모 단계(마모 없음 / 낮음 / 보통 / 높음), 800회 기준 진행률
 - **용량 상태**: 실측 유효 용량(없으면 충전 카운터와 레벨로 추정), 설계 용량 대비 차이
 - **분석 요약 카드**: 파싱 성공/실패/지원되지 않음 상태와 ASOC·BSOH 원시 값
@@ -105,9 +118,10 @@
 - 기본 줄: `배터리 제조: 2019년 9월 24일`
 - 보조 줄: `최초 통화일: 2019년 10월 7일`
 - 제조일이 없으면 `배터리 날짜 정보 없음`
-- 이미 기본 줄에 쓰인 날짜는 보조 줄에서 중복 표시하지 않음
+- 제조일이 기본 줄에 이미 쓰였으면 보조 줄에서 제외
 
-`LLB CAL`은 파싱해 `calibratedDateMs`로 보관하지만 화면에는 쓰지 않습니다.
+`LLB CAL`과 `battery FirstUseDate`는 파싱해 보관하지만
+**화면과 리포트에는 쓰지 않습니다.**
 
 ### `ril.actdate` (최초 통화일)
 
@@ -119,20 +133,9 @@ SYSTEM PROPERTIES 영역에 있어 파서가 별도로 읽어 `activationDateMs`
 | `ril.actdate` | 2019-10-07 | 2022-03-25 |
 | `LLB MAN` | 2019-09-24 | 2021-08-25 |
 
-Note 10+는 제조(9/24) → 보정(9/25) → 개통(10/7) 순서로 자연스럽지만,
+실기기 로그로 확인한 값입니다. Note 10+는 제조(9/24) → 개통(10/7),
 폴드3은 제조(2021-08) → 개통(2022-03)으로 약 7개월의 재고 기간이 있습니다.
-이 값은 배터리 날짜가 아니므로 개월 수 계산에는 쓰지 않고 참고 정보로만 표시합니다.
-
-> [!WARNING]
-> 아래 경우 `LLB CAL`이 실제 교체일과 다를 수 있습니다.
->
-> - 셀만 교체하고 BMS 회로를 재사용한 경우 → 이전 날짜 유지
-> - 배터리 초기화가 불완전한 경우 → 이전 날짜 유지
-> - One UI 5.1+로 업데이트된 구형 기종 → `LLB CAL`이 비어 값을 알 수 없음
->
-> 이 한계 때문에 개월 수는 참고값으로만 제공합니다.
->
-> 어느 필드가 쓰였는지 화면에 함께 표시해 사용자가 직접 판단할 수 있게 합니다.
+이 값은 배터리 날짜가 아니므로 배터리 관련 계산에는 쓰지 않습니다.
 
 ## 건강도 판정 우선순위 및 점수 산정
 
@@ -198,7 +201,10 @@ T는 H 80/81/82/83/84에서 각각 500/467/434/400/350이고, 그 외 H는 501�
 | ASOC | `mSavedBatteryAsoc` | 앱 내부 건강도 판정값 |
 | BSOH | `mSavedBatteryBsoh` | 건강도 판정 입력값(있으면 우선 사용, 임계값은 ASOC 기준을 준용하며 아직 검증되지 않음) |
 | 사이클 | `mSavedBatteryUsage` | 원시 값은 비공식 사이클 환산값 × 100 (예: `157000` → 1570회) |
-| 배터리 날짜 | `LLB CAL` / `LLB MAN` | 배터리 제조·조립일 |
+| 배터리 제조일 | `LLB MAN` | 배터리 셀 제조일 (화면 표시) |
+| 배터리 보정일 | `LLB CAL` | 최초 보정/사용일 (보관만, 미표시) |
+| 기기 최초 사용일 | `battery FirstUseDate` | 메인보드 기준 (보관만, 미표시) |
+| 최초 통화일 | `ril.actdate` | 기기 개통일 (화면 표시, SYSTEM PROPERTIES) |
 | 로그 시각 | `== dumpstate:`, `[YYYY-MM-DD HH:MM:SS]`, 파일명 | 로그 생성 시각(없으면 파일명에서) |
 | 레벨 | `level:` | 현재 충전량(%) |
 | 충전 카운터 | `charge counter:` / 인라인 `cc:` | µAh → mAh 변환 |
@@ -254,6 +260,9 @@ app/src/main/java/com/donian/galaxy_battery/
 # 디버그 APK 빌드 (app/build/outputs/apk/debug/app-debug.apk)
 ./gradlew :app:assembleDebug
 
+# 배포용 APK 빌드 (서명 필요: signing.properties + galaxy_battery-release.jks)
+./gradlew :app:assembleRelease
+
 # 단위 테스트
 ./gradlew :app:testDebugUnitTest
 
@@ -264,8 +273,13 @@ app/src/main/java/com/donian/galaxy_battery/
 단위 테스트는 파서(`BatteryParserTest`), 판정(`BatteryHealthTest`),
 캐시 왕복(`BatteryCacheTest`), 지역화(`LocalizationTest`),
 스크롤바·테마(`ScrollbarTest`, `SystemColorsTest`)를 다룹니다.
-`BatteryCacheTest`는 SharedPreferences를 흉내 내어 "파싱 직후 판정"과
-"캐시 복원 후 판정"이 같은지 확인합니다. (BSOH 소실 회귀 방지)
+
+- `BatteryParserTest` — LLB CAL/MAN 분리, FirstUseDate, `ril.actdate`,
+  날짜·타임스탬프 파싱과 파일 이름 처리
+- `BatteryHealthTest` — 파싱 5건 + 판정 20여 건 (경계값·점수 공식·불가 사유)
+- `BatteryCacheTest` — SharedPreferences를 흉내 내어 "파싱 직후 판정"과
+  "캐시 복원 후 판정"이 같은지 확인 (BSOH 소실 회귀 방지)
+
 UI 테스트는 `SetupScreenUiTest`가 설정 화면의 버튼과 앱 이름을 확인합니다.
 
 ## 지역화
