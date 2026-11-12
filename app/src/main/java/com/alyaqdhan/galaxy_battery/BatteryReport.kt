@@ -14,7 +14,8 @@ object BatteryReport {
 
     fun build(context: Context, info: BatteryInfo): String {
         val none   = context.getString(R.string.report_none)
-        val korean = context.resources.configuration.locales[0]?.language == "ko"
+        // 배터리 장착일 표기 방식만 로케일을 따르고, 리포트 문구는 리소스가 담당한다.
+        val dateStyleKorean = context.resources.configuration.locales[0]?.language == "ko"
 
         fun value(text: String?): String = text?.takeIf { it.isNotBlank() } ?: none
         fun grouped(number: Int?): String? =
@@ -22,7 +23,7 @@ object BatteryReport {
         fun capacity(number: Int?): String? =
             number?.let { String.format(Locale.US, "%,d mAh", it) }
 
-        val assessment = BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue, info.bsohValue)
+        val assessment = info.assessment
 
         val scoreStr = if (assessment.status == BatteryHealthStatus.OK && assessment.score != null) {
             "${assessment.score}%"
@@ -106,7 +107,7 @@ object BatteryReport {
         )
         lines += context.getString(
             R.string.report_install_date,
-            value(formatBatteryDate(info.batteryDateMs, korean))
+            value(formatBatteryDate(info.batteryDateMs, dateStyleKorean))
         )
 
         return lines.joinToString("\n")

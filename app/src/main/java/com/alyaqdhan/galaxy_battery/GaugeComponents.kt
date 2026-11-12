@@ -99,7 +99,8 @@ fun HealthGaugeCard(
     amplitude: Float,
     gaugeReplayKey: Int = 0
 ) {
-    val assessment = BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue, info.bsohValue)
+    // 판정 결과는 BatteryInfo가 들고 있다. 표시 경로에서 다시 계산하지 않는다.
+    val assessment = info.assessment
     val diagnosticScore = assessment.score
     val isUnsupported = assessment.status != BatteryHealthStatus.OK
     val targetPct = diagnosticScore?.toFloat() ?: 0f
@@ -507,7 +508,6 @@ fun TelemetryCard(
     val measured   = info.measuredCapacityMah
     val design     = info.designCapacityMah
     val health     = info.healthPercent
-
     val cyclesAnim = remember { Animatable(0f) }
     val capAnim    = remember { Animatable(0f) }
 
@@ -864,13 +864,7 @@ fun LogSummaryCard(
         info.errorMessage.isNotBlank() -> stringResource(R.string.analysis_error, info.errorMessage)
         else                     -> stringResource(R.string.analysis_no_error)
     }
-    val asocRaw = info.asocRaw.ifBlank {
-        if (info.healthSource.equals("asoc", ignoreCase = true)) {
-            info.healthPercent?.toString() ?: "—"
-        } else {
-            "—"
-        }
-    }
+    val asocRaw = info.displayAsocRaw
 
     DashboardCard {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {

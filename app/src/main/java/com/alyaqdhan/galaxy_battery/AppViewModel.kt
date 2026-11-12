@@ -4,8 +4,6 @@ import android.app.Application
 import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
@@ -13,7 +11,6 @@ import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -32,58 +29,71 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val repository = BatteryRepository(context, prefs)
 
     // ── Shared app state ──────────────────────────────────────────────────────
-    var folderState      by mutableStateOf(FolderState())        ; private set
-    var batteryState    by mutableStateOf(BatteryState())        ; private set
-    var batteryInfo: BatteryInfo?
-        get() = batteryState.batteryInfo
-        private set(value) { batteryState = batteryState.copy(batteryInfo = value) }
-
-    var folderUri: Uri?
-        get() = folderState.folderUri
-        private set(value) { folderState = folderState.copy(folderUri = value) }
-    var alreadyHasPerm: Boolean
-        get() = folderState.alreadyHasPerm
-        private set(value) { folderState = folderState.copy(alreadyHasPerm = value) }
-    var folderAccessible: Boolean
-        get() = folderState.folderAccessible
-        private set(value) { folderState = folderState.copy(folderAccessible = value) }
-    var hasEverScanned: Boolean
-        get() = folderState.hasEverScanned
-        private set(value) { folderState = folderState.copy(hasEverScanned = value) }
-    var isRefreshing: Boolean
-        get() = batteryState.isRefreshing
-        private set(value) { batteryState = batteryState.copy(isRefreshing = value) }
-    var isLoadingDetail: Boolean
-        get() = batteryState.isLoadingDetail
-        private set(value) { batteryState = batteryState.copy(isLoadingDetail = value) }
-
-    // Log sheet (delegated to LogSheetState)
+    // 상태는 화면별 묶음(Folder/Battery/LogSheet/RawLog)으로 들고, 갱신은 아래
+    // edit* 헬퍼 한 곳으로만 한다. (같은 묶음을 여러 번 copy 하던 갱신 지점을 좁힌다)
+    var folderState   by mutableStateOf(FolderState())   ; private set
+    var batteryState  by mutableStateOf(BatteryState())  ; private set
     var logSheetState by mutableStateOf(LogSheetState()) ; private set
-    var allLogEntries: List<DocEntry>
-        get() = logSheetState.allLogEntries
-        private set(value) { logSheetState = logSheetState.copy(allLogEntries = value) }
-    var showLogSheet: Boolean
-        get() = logSheetState.showLogSheet
-        private set(value) { logSheetState = logSheetState.copy(showLogSheet = value) }
+    var rawLogState   by mutableStateOf(RawLogState())   ; private set
 
-    // Raw log screen (delegated to RawLogState)
-    var rawLogState by mutableStateOf(RawLogState()) ; private set
-    var rawLogText: String
-        get() = rawLogState.rawLogText
-        private set(value) { rawLogState = rawLogState.copy(rawLogText = value) }
-    var isLoadingRaw: Boolean
-        get() = rawLogState.isLoadingRaw
-        private set(value) { rawLogState = rawLogState.copy(isLoadingRaw = value) }
-    var selectedLogFileName: String
-        get() = rawLogState.selectedLogFileName
-        private set(value) { rawLogState = rawLogState.copy(selectedLogFileName = value) }
+    /** 같은 묶음을 한 번에 갱신하는 단일 지점. */
+    private inline fun editFolder(block: (FolderState) -> FolderState) {
+        folderState = block(folderState)
+    }
 
-    // Error overlay
-    var errorDialog: ErrorDialog?
-        get() = batteryState.errorDialog
-        private set(value) { batteryState = batteryState.copy(errorDialog = value) }
+    private inline fun editBattery(block: (BatteryState) -> BatteryState) {
+        batteryState = block(batteryState)
+    }
 
-    // Gauge animation signals (delegated to GaugeViewModel)
+    private inline fun editLogSheet(block: (LogSheetState) -> LogSheetState) {
+        logSheetState = block(logSheetState)
+    }
+
+    private inline fun editRawLog(block: (RawLogState) -> RawLogState) {
+        rawLogState = block(rawLogState)
+    }
+
+    // ── 읽기 전용 위임 프로퍼티 (화면 접근 통로) ──────────────────────────────
+
+    val batteryInfo: BatteryInfo?     get() = batteryState.batteryInfo
+    val isRefreshing: Boolean         get() = batteryState.isRefreshing
+    val isLoadingDetail: Boolean      get() = batteryState.isLoadingDetail
+    val errorDialog: ErrorDialog?     get() = batteryState.errorDialog
+
+    val folderUri: Uri?               get() = folderState.folderUri
+    val alreadyHasPerm: Boolean       get() = folderState.alreadyHasPerm
+    val folderAccessible: Boolean     get() = folderState.folderAccessible
+    val hasEverScanned: Boolean       get() = folderState.hasEverScanned
+
+    val allLogEntries: List<DocEntry> get() = logSheetState.allLogEntries
+    val showLogSheet: Boolean         get() = logSheetState.showLogSheet
+
+    val rawLogText: String            get() = rawLogState.rawLogText
+    val isLoadingRaw: Boolean         get() = rawLogState.isLoadingRaw
+    val selectedLogFileName: String   get() = rawLogState.selectedLogFileName
+
+    // ── 상태 갱신 헬퍼 ────────────────────────────────────────────────────────
+
+    private fun batteryInfo(value: BatteryInfo?) = editBattery { it.copy(batteryInfo = value) }
+    private fun isRefreshing(value: Boolean) = editBattery { it.copy(isRefreshing = value) }
+    private fun isLoadingDetail(value: Boolean) = editBattery { it.copy(isLoadingDetail = value) }
+    private fun errorDialog(value: ErrorDialog?) = editBattery { it.copy(errorDialog = value) }
+
+    private fun folderUri(value: Uri?) = editFolder { it.copy(folderUri = value) }
+    private fun alreadyHasPerm(value: Boolean) = editFolder { it.copy(alreadyHasPerm = value) }
+    private fun folderAccessible(value: Boolean) = editFolder { it.copy(folderAccessible = value) }
+    private fun hasEverScanned(value: Boolean) = editFolder { it.copy(hasEverScanned = value) }
+
+    private fun allLogEntries(value: List<DocEntry>) = editLogSheet { it.copy(allLogEntries = value) }
+    private fun showLogSheet(value: Boolean) = editLogSheet { it.copy(showLogSheet = value) }
+
+    private fun rawLogText(value: String) = editRawLog { it.copy(rawLogText = value) }
+    private fun isLoadingRaw(value: Boolean) = editRawLog { it.copy(isLoadingRaw = value) }
+    private fun selectedLogFileName(value: String) =
+        editRawLog { it.copy(selectedLogFileName = value) }
+
+    // ── Gauge animation signals (delegated to GaugeViewModel) ─────────────────
+
     private val gaugeVm = GaugeViewModel(getApplication())
     val gaugeAmplitude: Float get() = gaugeVm.gaugeAmplitude
     val gaugeReplayKey: Int get() = gaugeVm.gaugeReplayKey
@@ -105,7 +115,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun initialize(): Boolean {
         val savedUriStr = prefs.getString("folder_uri", null)
         val savedUri    = savedUriStr?.toUri()
-        folderUri       = savedUri
+        folderUri(savedUri)
         releaseUnusedFolderGrants(keep = savedUri)
 
         if (savedUri == null) return false
@@ -125,60 +135,60 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             if (!repository.hasPersistedPermission(savedUri)) {
                 // Shouldn't normally reach here (handled synchronously above),
                 // but guard against race conditions.
-                alreadyHasPerm   = false
-                folderAccessible = false
-                allLogEntries    = emptyList()
-                isLoadingDetail  = false
+                alreadyHasPerm(false)
+                folderAccessible(false)
+                allLogEntries(emptyList())
+                isLoadingDetail(false)
                 return@launch
             }
 
-            alreadyHasPerm  = true
-            isLoadingDetail = true
+            alreadyHasPerm(true)
+            isLoadingDetail(true)
 
             val cached = repository.loadCachedBatteryInfo()
             if (cached != null) {
-                batteryInfo      = cached
-                folderAccessible = true
-                hasEverScanned   = true
+                batteryInfo(cached)
+                folderAccessible(true)
+                hasEverScanned(true)
 
                 val latestEntry = withContext(Dispatchers.IO) {
                     repository.findLatestLogEntry(savedUri)
                 }
                 if (latestEntry == null) {
-                    folderAccessible = false
-                    isLoadingDetail  = false
+                    folderAccessible(false)
+                    isLoadingDetail(false)
                     gaugeVm.incrementReplayKey()
-                    errorDialog = ErrorDialog.FolderDeleted
+                    errorDialog(ErrorDialog.FolderDeleted)
                     return@launch
                 }
                 if (latestEntry.name != cached.logFileName) {
                     val liveInfo = withContext(Dispatchers.IO) {
                         repository.parseLatestLog(savedUri, latestEntry)
                     }
-                    if (liveInfo.readSuccess) batteryInfo = liveInfo
+                    if (liveInfo.readSuccess) batteryInfo(liveInfo)
                 }
-                isLoadingDetail = false
+                isLoadingDetail(false)
 
             } else {
                 val latestEntry = withContext(Dispatchers.IO) {
                     repository.findLatestLogEntry(savedUri)
                 }
                 if (latestEntry == null) {
-                    isLoadingDetail  = false
-                    folderAccessible = false
-                    errorDialog = ErrorDialog.FolderDeleted
+                    isLoadingDetail(false)
+                    folderAccessible(false)
+                    errorDialog(ErrorDialog.FolderDeleted)
                     return@launch
                 }
                 val info = withContext(Dispatchers.IO) {
                     repository.smartScan(savedUri, latestEntry)
                 }
-                isLoadingDetail  = false
-                batteryInfo      = info
-                folderAccessible = true
+                isLoadingDetail(false)
+                batteryInfo(info)
+                folderAccessible(true)
                 if (info.readSuccess) {
-                    hasEverScanned = true
+                    hasEverScanned(true)
                 } else {
-                    errorDialog = ErrorDialog.WrongFolder(info.errorMessage)
+                    errorDialog(ErrorDialog.WrongFolder(info.errorMessage))
                 }
             }
         }
@@ -208,7 +218,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val previousCache = repository.loadCachedBatteryInfo()
         val previousInfo  = batteryInfo
         val canRollBack   = previousUri != null && previousUri != uri && alreadyHasPerm
-        isLoadingDetail   = true
+        isLoadingDetail(true)
 
         viewModelScope.launch {
             // First check the folder actually contains a dumpstate log
@@ -218,11 +228,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
             if (latestEntry == null) {
                 // Nothing found — treat as wrong folder, do NOT persist the URI
-                isLoadingDetail = false
+                isLoadingDetail(false)
                 releaseUnusedFolderGrants(keep = previousUri)
-                errorDialog     = ErrorDialog.WrongFolder(
-                    "선택한 폴더에서 dumpState_*.log 파일을 찾지 못했습니다. " +
-                            "/Device/log/ 폴더로 이동해 다시 시도하세요."
+                errorDialog(
+                    ErrorDialog.WrongFolder(
+                        "선택한 폴더에서 dumpState_*.log 파일을 찾지 못했습니다. " +
+                                "/Device/log/ 폴더로 이동해 다시 시도하세요."
+                    )
                 )
                 onResult(false)
                 return@launch
@@ -232,22 +244,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             // The scan continues in the background; the Dashboard shows isLoadingDetail.
             if (uri != previousUri) repository.clearBatteryInfoCache()
             prefs.edit { putString("folder_uri", uri.toString()) }
-            folderUri        = uri
-            alreadyHasPerm   = true
-            folderAccessible = true
-            allLogEntries    = emptyList()
-            batteryInfo      = null
+            folderUri(uri)
+            alreadyHasPerm(true)
+            folderAccessible(true)
+            allLogEntries(emptyList())
+            batteryInfo(null)
             onResult(true)
 
             val info = withContext(Dispatchers.IO) {
                 repository.smartScan(uri, latestEntry)
             }
-            isLoadingDetail = false
+            isLoadingDetail(false)
 
             when {
                 info.readSuccess -> {
-                    batteryInfo    = info
-                    hasEverScanned = true
+                    batteryInfo(info)
+                    hasEverScanned(true)
                     releaseUnusedFolderGrants(keep = uri)
                 }
                 canRollBack -> {
@@ -255,15 +267,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     prefs.edit { putString("folder_uri", previousUri.toString()) }
                     previousCache?.let { repository.cacheBatteryInfo(it) }
                     releaseUnusedFolderGrants(keep = previousUri)
-                    folderUri   = previousUri
-                    batteryInfo = previousInfo
+                    folderUri(previousUri)
+                    batteryInfo(previousInfo)
                     gaugeVm.incrementReplayKey()
-                    errorDialog = ErrorDialog.WrongFolder(info.errorMessage)
+                    errorDialog(ErrorDialog.WrongFolder(info.errorMessage))
                 }
                 else -> {
                     // Nothing to go back to — show the Dashboard as unsupported, not stuck loading
-                    batteryInfo = info.copy(healthUnsupported = true)
-                    errorDialog = ErrorDialog.WrongFolder(info.errorMessage)
+                    batteryInfo(info.copy(healthUnsupported = true))
+                    errorDialog(ErrorDialog.WrongFolder(info.errorMessage))
                 }
             }
         }
@@ -284,12 +296,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         repository.clearBatteryInfoCache()
         prefs.edit {
             remove("folder_uri")
+            remove("cache_schema_version")
             remove("cache_log_file_name")
             remove("cache_log_timestamp_ms")
             remove("cache_health_percent")
             remove("cache_health_source")
             remove("cache_health_unsupported")
             remove("cache_cycle_count")
+            remove("cache_asoc_raw")
+            remove("cache_asoc_value")
+            remove("cache_bsoh_raw")
+            remove("cache_bsoh_percent")
+            remove("cache_bsoh_value")
+            remove("cache_battery_usage_value")
+            remove("cache_usage_raw")
             remove("cache_battery_date_ms")
             remove("cache_voltage_mv")
             remove("cache_temperature_c")
@@ -301,14 +321,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             remove("cache_charge_status")
             remove("cache_power_source")
         }
-        folderUri        = if (keepUri) folderUri else null
-        alreadyHasPerm   = false
-        folderAccessible = false
-        hasEverScanned   = false
-        batteryInfo      = null
-        allLogEntries    = emptyList()
-        showLogSheet     = false
-        errorDialog      = null
+        folderUri(if (keepUri) folderUri else null)
+        alreadyHasPerm(false)
+        folderAccessible(false)
+        hasEverScanned(false)
+        batteryInfo(null)
+        allLogEntries(emptyList())
+        showLogSheet(false)
+        errorDialog(null)
     }
 
     /**
@@ -335,17 +355,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (isRefreshing) return
 
         viewModelScope.launch {
-            isRefreshing = true
+            isRefreshing(true)
 
             if (!repository.hasPersistedPermission(uri)) {
-                isRefreshing  = false
-                showLogSheet  = false
-                allLogEntries = emptyList()
+                isRefreshing(false)
+                showLogSheet(false)
+                allLogEntries(emptyList())
                 val cached = repository.loadCachedBatteryInfo()
                 if (cached != null) {
-                    batteryInfo = cached; hasEverScanned = true; gaugeVm.incrementReplayKey()
+                    batteryInfo(cached); hasEverScanned(true); gaugeVm.incrementReplayKey()
                 }
-                errorDialog = ErrorDialog.PermissionLost
+                errorDialog(ErrorDialog.PermissionLost)
                 return@launch
             }
 
@@ -353,14 +373,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 repository.findLatestLogEntry(uri)
             }
             if (latestEntry == null) {
-                isRefreshing     = false
-                folderAccessible = false
-                showLogSheet     = false
+                isRefreshing(false)
+                folderAccessible(false)
+                showLogSheet(false)
                 val cached = repository.loadCachedBatteryInfo()
                 if (cached != null) {
-                    batteryInfo = cached; hasEverScanned = true; gaugeVm.incrementReplayKey()
+                    batteryInfo(cached); hasEverScanned(true); gaugeVm.incrementReplayKey()
                 }
-                errorDialog = ErrorDialog.FolderDeleted
+                errorDialog(ErrorDialog.FolderDeleted)
                 return@launch
             }
 
@@ -372,28 +392,28 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
             if (cached?.logFileName == latestEntry.name) {
                 // Files unchanged — just replay the gauge animation
-                alreadyHasPerm   = true
-                folderAccessible = true
-                isRefreshing     = false
+                alreadyHasPerm(true)
+                folderAccessible(true)
+                isRefreshing(false)
                 gaugeVm.incrementReplayKey()
                 return@launch
             }
 
             // New file appeared, or loaded file was deleted — parse latest
-            isLoadingDetail = true
+            isLoadingDetail(true)
             val info = withContext(Dispatchers.IO) {
                 repository.parseLatestLog(uri, latestEntry)
             }
-            isRefreshing    = false
-            isLoadingDetail = false
+            isRefreshing(false)
+            isLoadingDetail(false)
             if (info.readSuccess) {
-                batteryInfo      = info
-                alreadyHasPerm   = true
-                folderAccessible = true
-                hasEverScanned   = true
+                batteryInfo(info)
+                alreadyHasPerm(true)
+                folderAccessible(true)
+                hasEverScanned(true)
                 gaugeVm.incrementReplayKey()
             } else {
-                errorDialog = ErrorDialog.WrongFolder(info.errorMessage)
+                errorDialog(ErrorDialog.WrongFolder(info.errorMessage))
             }
         }
     }
@@ -404,27 +424,27 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val uri = folderUri
         if (uri != null && repository.hasPersistedPermission(uri)) {
             viewModelScope.launch {
-                allLogEntries = withContext(Dispatchers.IO) { repository.listAllLogs(uri) }
-                showLogSheet  = true
+                allLogEntries(withContext(Dispatchers.IO) { repository.listAllLogs(uri) })
+                showLogSheet(true)
             }
         } else {
-            showLogSheet = true
+            showLogSheet(true)
         }
     }
 
-    fun dismissLogSheet() { showLogSheet = false }
+    fun dismissLogSheet() { showLogSheet(false) }
 
     fun selectLogEntry(entry: DocEntry) {
         val uri = folderUri ?: return
         viewModelScope.launch {
-            isLoadingDetail = true
-            showLogSheet    = false
+            isLoadingDetail(true)
+            showLogSheet(false)
             startGaugePulse()
             val parsed = withContext(Dispatchers.IO) { repository.parseLogEntry(uri, entry) }
-            isLoadingDetail = false
+            isLoadingDetail(false)
             if (parsed.readSuccess) {
-                batteryInfo      = parsed
-                folderAccessible = true
+                batteryInfo(parsed)
+                folderAccessible(true)
             }
         }
     }
@@ -436,21 +456,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openRawLog(entry: DocEntry) {
         val uri = folderUri ?: return
         viewModelScope.launch {
-            rawLogText          = ""
-            isLoadingRaw        = true
-            showLogSheet        = false
-            selectedLogFileName = entry.name
+            rawLogText("")
+            isLoadingRaw(true)
+            showLogSheet(false)
+            selectedLogFileName(entry.name)
             val text = withContext(Dispatchers.IO) {
                 repository.extractBatterySection(uri, entry)
             }
-            rawLogText   = text
-            isLoadingRaw = false
+            rawLogText(text)
+            isLoadingRaw(false)
         }
     }
 
     // ── Error dialog ──────────────────────────────────────────────────────────
 
-    fun dismissErrorDialog() { errorDialog = null }
+    fun dismissErrorDialog() { errorDialog(null) }
 
     // ── Resume check ─────────────────────────────────────────────────────────
 
@@ -463,33 +483,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 repository.hasPersistedPermission(uri)
             }
             if (!hasPerm && alreadyHasPerm) {
-                alreadyHasPerm   = false
-                folderAccessible = false
-                allLogEntries    = emptyList()
-                showLogSheet     = false
+                alreadyHasPerm(false)
+                folderAccessible(false)
+                allLogEntries(emptyList())
+                showLogSheet(false)
                 val cached = repository.loadCachedBatteryInfo()
                 if (cached != null) {
-                    batteryInfo = cached; hasEverScanned = true; gaugeVm.incrementReplayKey()
+                    batteryInfo(cached); hasEverScanned(true); gaugeVm.incrementReplayKey()
                 }
-                errorDialog = ErrorDialog.PermissionLost
+                errorDialog(ErrorDialog.PermissionLost)
             } else if (hasPerm) {
                 val latestEntry = withContext(Dispatchers.IO) {
                     repository.findLatestLogEntry(uri)
                 }
                 if (latestEntry == null) {
                     if (folderAccessible) {
-                        folderAccessible = false
-                        allLogEntries    = emptyList()
-                        showLogSheet     = false
+                        folderAccessible(false)
+                        allLogEntries(emptyList())
+                        showLogSheet(false)
                         val cached = repository.loadCachedBatteryInfo()
                         if (cached != null) {
-                            batteryInfo = cached; hasEverScanned = true; gaugeVm.incrementReplayKey()
+                            batteryInfo(cached); hasEverScanned(true); gaugeVm.incrementReplayKey()
                         }
-                        errorDialog = ErrorDialog.FolderDeleted
+                        errorDialog(ErrorDialog.FolderDeleted)
                     }
                 } else {
                     // Folder is accessible — restore state if it was previously inaccessible
-                    if (!folderAccessible) folderAccessible = true
+                    if (!folderAccessible) folderAccessible(true)
 
                     // If the currently loaded file no longer exists in the folder,
                     // silently fall back to the latest without showing an error.
@@ -503,19 +523,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                             val cached = repository.loadCachedBatteryInfo()
                             if (cached?.logFileName == latestEntry.name) {
                                 // Cache already holds the latest — use it directly
-                                batteryInfo    = cached
-                                hasEverScanned = true
+                                batteryInfo(cached)
+                                hasEverScanned(true)
                                 gaugeVm.incrementReplayKey()
                             } else {
                                 // Need to parse the latest file
-                                isLoadingDetail = true
+                                isLoadingDetail(true)
                                 val info = withContext(Dispatchers.IO) {
                                     repository.parseLatestLog(uri, latestEntry)
                                 }
-                                isLoadingDetail = false
+                                isLoadingDetail(false)
                                 if (info.readSuccess) {
-                                    batteryInfo    = info
-                                    hasEverScanned = true
+                                    batteryInfo(info)
+                                    hasEverScanned(true)
                                     gaugeVm.incrementReplayKey()
                                 }
                             }

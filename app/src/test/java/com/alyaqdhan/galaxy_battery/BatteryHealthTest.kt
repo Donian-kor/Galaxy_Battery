@@ -58,6 +58,17 @@ class BatteryHealthParsingTest {
         assertEquals(-2, parse("mSavedBatteryAsoc: -2\n").asocValue)
         assertEquals(101, parse("mSavedBatteryAsoc: 101\n").asocValue)
     }
+
+    @Test
+    fun `parsed info carries its assessment`() {
+        val info = parse("mSavedBatteryAsoc: 73\nmSavedBatteryUsage: 97034\n")
+
+        assertEquals(
+            BatteryHealthClassifier.assess(73, 97034, null),
+            info.assessment
+        )
+        assertEquals(76, info.assessment.score)
+    }
 }
 
 class BatteryHealthClassifierTest {
@@ -308,5 +319,33 @@ class BatteryHealthClassifierTest {
         assertScore(90, 300, BatteryHealthGrade.GOOD, 95)
         assertScore(73, 200, BatteryHealthGrade.BAD, 30)
         assertScore(50, 2000, BatteryHealthGrade.BAD, 13)
+    }
+
+    @Test
+    fun `unavailable grade carries the specific reason`() {
+        // 사이클을 못 읽음 / 건강도 범위 밖 / 건강도 없음 / 사이클 부족은
+        // 화면 문구는 같아도 원인이 다르다.
+        assertEquals(
+            BatteryHealthUnavailableReason.MISSING_CYCLES,
+            BatteryHealthClassifier.assess(73, null).unavailableReason
+        )
+        assertEquals(
+            BatteryHealthUnavailableReason.HEALTH_OUT_OF_RANGE,
+            BatteryHealthClassifier.assess(-2, 10000).unavailableReason
+        )
+        assertEquals(
+            BatteryHealthUnavailableReason.HEALTH_MISSING,
+            BatteryHealthClassifier.assess(-1, 10000).unavailableReason
+        )
+        assertEquals(
+            BatteryHealthUnavailableReason.CYCLES_BELOW_MINIMUM,
+            BatteryHealthClassifier.assess(73, 2900).unavailableReason
+        )
+    }
+
+    @Test
+    fun `ok grades carry no unavailable reason`() {
+        assertNull(BatteryHealthClassifier.assess(73, 97034).unavailableReason)
+        assertNull(BatteryHealthClassifier.assess(50, 200000).unavailableReason)
     }
 }

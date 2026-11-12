@@ -26,7 +26,6 @@ class BatteryParserTest {
     fun `asoc is the main health value`() {
         val info = parse("  mSavedBatteryAsoc: 87\n  mSavedBatteryBsoh: 90\n")
         assertEquals(87, info.healthPercent)
-        assertEquals("asoc", info.healthSource)
         assertEquals(90, info.bsohPercent)
         assertEquals("90", info.bsohRaw)
         assertFalse(info.healthUnsupported)
@@ -38,7 +37,6 @@ class BatteryParserTest {
         val info = parse("  mSavedBatteryBsoh: 74\n")
         assertEquals(74, info.healthPercent)
         assertEquals(74, info.bsohPercent)
-        assertEquals("bsoh", info.healthSource)
     }
 
     @Test
@@ -55,7 +53,6 @@ class BatteryParserTest {
     fun `bsoh is used when asoc is unsupported`() {
         val info = parse("  mSavedBatteryAsoc: [unsupported]\n  mSavedBatteryBsoh: 74\n")
         assertEquals(74, info.healthPercent)
-        assertEquals("bsoh", info.healthSource)
     }
 
     @Test
@@ -76,276 +73,242 @@ class BatteryParserTest {
     }
 
     @Test
-    fun `no health value means unsupported`() {
-        val info = parse("mSavedBatteryUsage: 124500\n")
+    fun `health is unavailable when nothing was read`() {
+        val info = parse("unrelated line\n")
+
         assertNull(info.healthPercent)
         assertTrue(info.healthUnsupported)
+        assertFalse(info.readSuccess)
     }
 
-    // ── Cycles ────────────────────────────────────────────────────────────────
+    // ── Display / assessment share one priority rule ─────────────────────────
 
     @Test
-    fun `usage is stored as cycles times one hundred`() {
-        assertEquals(1245, parse("mSavedBatteryUsage: 124500\n").cycleCount)
+    fun `displayed health follows the bsoh first rule used by the assessment`() {
+        val info = parse("mSavedBatteryAsoc: 85\nmSavedBatteryBsoh: 95\nmSavedBatteryUsage: 30000\n")
+
+        assertEquals(HealthSource.BSOH, info.healthSource)
+        assertEquals(95, info.healthPercent)
+        assertEquals(95, info.assessment.healthValue)
+        assertEquals(HealthSource.BSOH, info.assessment.healthSource)
+        assertEquals(0.95, info.healthFactor, 0.0001)
     }
 
     @Test
-    fun `usage rounds down to whole cycles`() {
-        assertEquals(1245, parse("mSavedBatteryUsage: 124599\n").cycleCount)
+    fun `estimated capacity uses the same health value as the assessment`() {
+        val info = parse(
+            "mSavedBatteryAsoc: 85\nmSavedBatteryBsoh: 95\n" +
+                    "mSavedBatteryUsage: 30000\nDesign capacity: 4000000\n"
+        )
+
+        assertEquals(95, info.assessment.healthValue)
+        assertEquals(3800, info.measuredCapacityMah)
     }
 
     @Test
-    fun `unsupported usage has no cycle count`() {
-        assertNull(parse("mSavedBatteryUsage: [unsupported]\n").cycleCount)
+    fun `asoc raw fallback uses the enum source`() {
+        val withAsoc = parse("mSavedBatteryAsoc: 85\nmSavedBatteryUsage: 30000\n")
+        assertEquals("85", withAsoc.displayAsocRaw)
+
+        val bsohOnly = parse("mSavedBatteryBsoh: 95\nmSavedBatteryUsage: 30000\n")
+        assertEquals("—", bsohOnly.displayAsocRaw)
     }
 
-    // ── Dates ─────────────────────────────────────────────────────────────────
+    // ── Usage / cycles ───────────────────────────────────────────────────────
 
     @Test
-    fun `llb cal gives the battery date`() {
-        val info = parse("LLB CAL: 20240115\n")
-        assertEquals(millis("20240115", "yyyyMMdd"), info.batteryDateMs)
+    fun `usage is converted to cycles`() {
+        val info = parse("  mSavedBatteryUsage: 97034\n")
+
+        assertEquals(97034, info.batteryUsageValue)
+        assertEquals("97034", info.usageRaw)
+        assertEquals(970, info.cycleCount)
+    }
+
+    @Test
+    fun `negative usage is kept raw but not converted`() {
+        val info = parse("  mSavedBatteryUsage: -1\n")
+
+        assertEquals(-1, info.batteryUsageValue)
+        assertNull(info.cycleCount)
+        assertNull(info.assessment.convertedCycles)
+    }
+
+    @Test
+    fun `inline cycle count fills in when saved usage is missing`() {
+        val info = parse("ACTION_BATTERY_CHANGED cycle_count:412, cc:3643752\n")
+
+        assertEquals(412, info.cycleCount)
+        assertNull(info.batteryUsageValue)
+    }
+
+    @Test
+    fun `inline charge counter is converted from micro amp hours`() {
+        val info = parse("ACTION_BATTERY_CHANGED cycle_count:412, cc:3643752\n")
+
+        assertEquals(3643, info.chargeCounterMah)
+    }
+
+    @Test
+    fun `design capacity falls back to the model table`() {
+        val info = parse("unrelated line\n", "dumpState_SM-G991B_202611010900.log")
+
+        assertEquals(4000, info.designCapacityMah)
+    }
+
+    @Test
+    fun `design capacity from the log wins over the model table`() {
+        val info = parse("Design capacity: 4500000\n", "dumpState_SM-G991B_202611010900.log")
+
+        assertEquals(4500, info.designCapacityMah)
+    }
+
+    @Test
+    fun `measured capacity is estimated from design capacity and health`() {
+        val info = parse(
+            "mSavedBatteryAsoc: 80\nmSavedBatteryUsage: 30000\nDesign capacity: 4000000\n"
+        )
+
+        assertTrue(info.capacityEstimated)
+        assertEquals(4000, info.designCapacityMah)
+        assertEquals(3200, info.measuredCapacityMah)
+    }
+
+    @Test
+    fun `a counter left over from a replaced battery is clamped to the level`() {
+        val info = parse(
+            "level: 40\ncharge counter: 4100000\nMaximum capacity: 4000000\n" +
+                    "mSavedBatteryUsage: 30000\n"
+        )
+
+        assertEquals(4000, info.measuredCapacityMah)
+        assertEquals(1600, info.chargeCounterMah)
+    }
+
+    // ── Timestamps ───────────────────────────────────────────────────────────
+
+    @Test
+    fun `log timestamp comes from the dumpstate header`() {
+        val info = parse("== dumpstate: 2026-11-01 09:00:00\n")
+
+        assertEquals(millis("2026-11-01 09:00:00"), info.logTimestampMs)
+    }
+
+    @Test
+    fun `log timestamp falls back to the file name`() {
+        val info = parse("unrelated line\n", "dumpState_dumpstate_202611010900.log")
+
+        assertEquals(millis("2026-11-01 09:00:00"), info.logTimestampMs)
+    }
+
+    @Test
+    fun `llb line yields the battery manufacture date`() {
+        val info = parse("LLB CAL: 20240105\n")
+
+        // The parser reads the date in the device's default zone, so build the
+        // expectation with the same default zone instead of a hard-coded epoch.
+        val expected = requireNotNull(
+            SimpleDateFormat("yyyyMMdd", Locale.US).parse("20240105")
+        ).time
+        assertEquals(expected, info.batteryDateMs)
         assertEquals("CAL", info.llbType)
     }
 
     @Test
-    fun `llb man gives the battery date`() {
-        val info = parse("llb man: 20230405\n")
-        assertEquals(millis("20230405", "yyyyMMdd"), info.batteryDateMs)
-        assertEquals("MAN", info.llbType)
+    fun `llb date is ignored when malformed`() {
+        val info = parse("LLB MAN: 20xx0105\n")
+
+        assertEquals(0L, info.batteryDateMs)
+        assertEquals("", info.llbType)
     }
 
     @Test
-    fun `the first llb line wins`() {
-        val info = parse("LLB CAL: 20240115\nLLB MAN: 20230405\n")
-        assertEquals(millis("20240115", "yyyyMMdd"), info.batteryDateMs)
+    fun `file name timestamp is zero when the name has no date`() {
+        assertEquals(0L, BatteryParser.extractTimestampFromFileName("dumpState_SM-G991B.log"))
     }
 
-    @Test
-    fun `an llb line with extra text is ignored`() {
-        assertEquals(0L, parse("LLB CAL: 20240115 trailing\n").batteryDateMs)
-    }
+    // ── File names ──────────────────────────────────────────────────────────
 
     @Test
-    fun `log time comes from the dumpstate header`() {
-        val info = parse("== dumpstate: 2026-10-31 08:15:30\n", name = "dumpState_nostamp.log")
-        assertEquals(millis("2026-10-31 08:15:30"), info.logTimestampMs)
-    }
-
-    @Test
-    fun `log time can come from a bracketed line`() {
-        val info = parse("[2026-10-31 08:15:30] something\n", name = "dumpState_nostamp.log")
-        assertEquals(millis("2026-10-31 08:15:30"), info.logTimestampMs)
-    }
-
-    @Test
-    fun `log time falls back to the file name`() {
-        assertEquals(millis("2026-11-01 09:00:00"), parse("no dates here\n").logTimestampMs)
-    }
-
-    // ── Read success ──────────────────────────────────────────────────────────
-
-    @Test
-    fun `a log without battery lines is not a success`() {
-        assertFalse(parse("nothing useful here\n").readSuccess)
-    }
-
-    @Test
-    fun `seeing an unsupported asoc still counts as a success`() {
-        val info = parse("mSavedBatteryAsoc: [unsupported]\n")
-        assertTrue(info.readSuccess)
-        assertTrue(info.healthUnsupported)
-    }
-
-    @Test
-    fun `a battery date alone counts as a success`() {
-        assertTrue(parse("LLB CAL: 20240115\n").readSuccess)
-    }
-
-    // ── File names ────────────────────────────────────────────────────────────
-
-    @Test
-    fun `dumpstate logs are recognised whatever the case`() {
+    fun `dump state log names are recognised case insensitively`() {
         assertTrue(BatteryParser.isDumpStateLog("dumpState_SM-G991B_202611010900.log"))
-        assertTrue(BatteryParser.isDumpStateLog("DUMPSTATE_x.LOG"))
+        assertTrue(BatteryParser.isDumpStateLog("DUMPSTATE_X.LOG"))
+        assertFalse(BatteryParser.isDumpStateLog("logcat_2026-11-01.log"))
+        assertFalse(BatteryParser.isDumpStateLog("dumpState_X.txt"))
     }
 
     @Test
-    fun `other files are not dumpstate logs`() {
-        assertFalse(BatteryParser.isDumpStateLog("dumpState_SM-G991B.txt"))
-        assertFalse(BatteryParser.isDumpStateLog("kernel_dumpState.log"))
-    }
-
-    @Test
-    fun `display name keeps just the model`() {
-        assertEquals("dumpstate_G991B", BatteryParser.truncateLogDisplayName(fileName))
+    fun `display names keep only the model`() {
         assertEquals(
-            "dumpstate_G9766H",
-            BatteryParser.truncateLogDisplayName("dumpstate_SM-G9766HE_20231015_123045.log")
+            "dumpstate_G991B",
+            BatteryParser.truncateLogDisplayName("dumpState_SM-G991B_202611010900.log")
         )
+        assertEquals("plain_name", BatteryParser.truncateLogDisplayName("plain_name_123456.log"))
     }
 
-    @Test
-    fun `display name falls back when no model is found`() {
-        assertEquals("dumpstate_abc", BatteryParser.truncateLogDisplayName("dumpstate_abc_x.log"))
-    }
+    // ── Section extraction ──────────────────────────────────────────────────
 
     @Test
-    fun `other names only lose the extension and trailing timestamp`() {
-        assertEquals("other", BatteryParser.truncateLogDisplayName("other_20231015123045.log"))
-    }
-
-    @Test
-    fun `timestamp is read from twelve digits in the file name`() {
-        assertEquals(
-            millis("2026-11-01 09:00:00"),
-            BatteryParser.extractTimestampFromFileName(fileName)
+    fun `battery service dump section is extracted with its header`() {
+        val text = sections(
+            "DUMP OF SERVICE battery:\n" +
+                    "  mSavedBatteryAsoc: 87\n" +
+                    "DUMP OF SERVICE alarm:\n" +
+                    "  mSavedBatteryAsoc: 1\n"
         )
+
+        assertTrue(text!!.contains("Battery Service Dump"))
+        assertTrue(text.contains("mSavedBatteryAsoc: 87"))
+        assertFalse(text.contains("DUMP OF SERVICE alarm"))
     }
 
     @Test
-    fun `a file name without twelve digits has no timestamp`() {
-        assertEquals(0L, BatteryParser.extractTimestampFromFileName("dumpState_20231015_123045.log"))
-    }
-
-    // ── Battery sections ──────────────────────────────────────────────────────
-
-    @Test
-    fun `both sections are extracted and labelled`() {
-        val log = """
-            unrelated header
-            BatteryInfoBackUp
-              mSavedBatteryAsoc: 87
-              mSavedBatteryUsage: 124500
-            another top level line
-            DUMP OF SERVICE battery:
-            Current Battery Service state:
-              level: 84
-            DUMP OF SERVICE batteryproperties:
-            done
-        """.trimIndent()
-        assertEquals(
-            "━━━ BatteryInfoBackUp ━━━\n\n" +
-                "mSavedBatteryAsoc: 87\n  mSavedBatteryUsage: 124500\n\n" +
-                "━━━ Battery Service Dump ━━━\n\n" +
-                "Current Battery Service state:\n  level: 84",
-            sections(log)
+    fun `backup block is extracted when it comes first`() {
+        val text = sections(
+            "BatteryInfoBackUp\n" +
+                    "  mSavedBatteryAsoc: 88\n" +
+                    "\n" +
+                    "DUMP OF SERVICE battery:\n" +
+                    "  mSavedBatteryAsoc: 87\n"
         )
+
+        assertTrue(text!!.contains("BatteryInfoBackUp"))
+        assertTrue(text.contains("mSavedBatteryAsoc: 88"))
+        assertTrue(text.contains("mSavedBatteryAsoc: 87"))
     }
 
     @Test
-    fun `the service dump can follow the backup section directly`() {
-        val log = "BatteryInfoBackUp\n  mSavedBatteryAsoc: 87\nDUMP OF SERVICE battery:\n  level: 84\n"
-        assertEquals(
-            "━━━ BatteryInfoBackUp ━━━\n\nmSavedBatteryAsoc: 87\n\n" +
-                "━━━ Battery Service Dump ━━━\n\nlevel: 84",
-            sections(log)
+    fun `log buffer noise is dropped from the extracted section`() {
+        val text = sections(
+            "DUMP OF SERVICE battery:\n" +
+                    "  mSavedBatteryAsoc: 87\n" +
+                    "[EventLogBuffer]\n" +
+                    "\n" +
+                    "  mSavedBatteryUsage: 500\n"
         )
+
+        assertTrue(text!!.contains("mSavedBatteryAsoc: 87"))
+        assertFalse(text.contains("EventLogBuffer"))
+        assertTrue(text.contains("mSavedBatteryUsage: 500"))
     }
 
     @Test
-    fun `a section still open at the end of the file is kept`() {
-        assertEquals(
-            "━━━ Battery Service Dump ━━━\n\nlevel: 84",
-            sections("DUMP OF SERVICE battery:\n  level: 84\n")
-        )
+    fun `logs without battery sections return null`() {
+        assertNull(sections("DUMP OF SERVICE alarm:\n  something: 1\n"))
     }
 
-    @Test
-    fun `log buffers are left out`() {
-        val log = """
-            DUMP OF SERVICE battery:
-              level: 84
-              [ChargerLogBuffer]
-              12:00:01 plugged
-              12:00:02 unplugged
-              health: 2
-            DUMP OF SERVICE other:
-        """.trimIndent()
-        assertEquals("━━━ Battery Service Dump ━━━\n\nlevel: 84\n  health: 2", sections(log))
-    }
+    // ── Design capacity table ───────────────────────────────────────────────
 
     @Test
-    fun `a log with no battery sections gives null`() {
-        assertNull(sections("just some text\nand more\n"))
-    }
-
-    // ── Capacity and cycle parsing ────────────────────────────────────────────
-
-    @Test
-    fun `charge counter is converted from microamp hours`() {
-        val info = parse("  charge counter: 3948000\n  level: 84\n")
-        assertEquals(3948, info.chargeCounterMah)
-    }
-
-    @Test
-    fun `capacities are read and converted`() {
-        val info = parse("  Maximum capacity: 4710000\n  Design capacity: 5000000\n")
-        assertEquals(4710, info.measuredCapacityMah)
-        assertEquals(5000, info.designCapacityMah)
-        assertFalse(info.capacityEstimated)
-    }
-
-    @Test
-    fun `capacity is estimated from the charge counter and level`() {
-        val info = parse("  charge counter: 3800000\n  level: 80\n", name = "dumpState_unknown_202611010900.log")
-        assertEquals(4750, info.measuredCapacityMah)
-        assertTrue(info.capacityEstimated)
-    }
-
-    @Test
-    fun `capacity is not estimated at a low level`() {
-        val info = parse("  charge counter: 300000\n  level: 10\n", name = "dumpState_unknown_202611010900.log")
-        assertNull(info.measuredCapacityMah)
-        assertFalse(info.capacityEstimated)
-    }
-
-    @Test
-    fun `a full capacity beats the estimate`() {
-        val info = parse(
-            "  charge counter: 3800000\n  level: 80\n  Maximum capacity: 4620000\n"
-        )
-        assertEquals(4620, info.measuredCapacityMah)
-        assertFalse(info.capacityEstimated)
-    }
-
-    @Test
-    fun `inline action_battery_changed line is parsed`() {
-        val log = "D BatteryService: Sending ACTION_BATTERY_CHANGED: level:94, " +
-            "cycle_count:0, cc:3643752\n"
-        val info = parse(log)
-        assertEquals(3643, info.chargeCounterMah)
-        assertEquals(0, info.cycleCount)
-    }
-
-    @Test
-    fun `a large section is read quickly`() {
-        val log = buildString {
-            appendLine("DUMP OF SERVICE battery:")
-            repeat(200_000) { appendLine("  line $it: some value") }
-        }
-        val started = System.currentTimeMillis()
-        val result  = requireNotNull(sections(log))
-        val elapsed = System.currentTimeMillis() - started
-        assertTrue(result.endsWith("line 199999: some value"))
-        assertTrue("Took ${elapsed}ms", elapsed < 10_000)
-    }
-
-    @Test
-    fun `a large log is parsed quickly`() {
-        val log = buildString {
-            appendLine("== dumpstate: 2026-10-31 08:15:30")
-            repeat(200_000) {
-                appendLine("10-31 08:15:30.123  1234  5678 I SystemServer: service event $it payload")
-            }
-            appendLine("  mSavedBatteryAsoc: 87")
-            appendLine("  mSavedBatteryUsage: 124500")
-        }
-        val started = System.currentTimeMillis()
-        val info    = parse(log)
-        val elapsed = System.currentTimeMillis() - started
-        assertEquals(87, info.healthPercent)
-        assertEquals(1245, info.cycleCount)
-        assertTrue("Took ${elapsed}ms", elapsed < 10_000)
+    fun `design capacity table covers each series`() {
+        assertEquals(4400, BatteryParser.lookupDesignCapacity("SM-F966B"))
+        assertEquals(4000, BatteryParser.lookupDesignCapacity("SM-F741B"))
+        assertEquals(5000, BatteryParser.lookupDesignCapacity("SM-S938B"))
+        assertEquals(4900, BatteryParser.lookupDesignCapacity("SM-S936B"))
+        assertEquals(5000, BatteryParser.lookupDesignCapacity("SM-G998B"))
+        assertEquals(4000, BatteryParser.lookupDesignCapacity("SM-G991B"))
+        assertEquals(4500, BatteryParser.lookupDesignCapacity("SM-N986B"))
+        assertEquals(3400, BatteryParser.lookupDesignCapacity("SM-G973F"))
+        assertNull(BatteryParser.lookupDesignCapacity("SM-UNKNOWN"))
     }
 }

@@ -46,12 +46,18 @@
 - **폴더 관리**: 폴더 변경, 접근 권한 제거, 저장 공간 삭제 후 폴더 다시 불러오기
 - **로그 생성 가이드**: `*#9900#` 다이얼 → dumpstate/logcat 실행 → sdcard 복사 → 폴더 권한 부여
   (다이얼 코드는 앱에서 직접 편집 가능)
-- **로그 캐시**: 마지막으로 분석한 결과를 저장해, 같은 로그는 즉시 표시하고 새 파일이 생기면 다시 분석
+- **로그 캐시**: 마지막으로 분석한 결과를 저장해, 같은 로그는 즉시 표시하고 새 파일이 생기면 다시 분석.
+  판정에 쓰는 원본 값(ASOC·BSOH·Battery Usage)을 함께 저장하므로 캐시에서도 같은 등급·점수가 나옵니다.
+  저장 항목이 바뀌면 캐시 버전(`cache_schema_version`)이 올라가 이전 캐시는 자동으로 버려집니다.
 
 ## 건강도 판정 우선순위 및 점수 산정
 
-건강도 입력값 H는 BSOH가 유효한 값(1~100)이면 BSOH를 우선 사용하고, 그렇지 않고 ASOC가 유효하면 ASOC를 사용합니다.
+건강도 입력값 H는 **BSOH 우선** 규칙 하나로 정합니다. `mSavedBatteryBsoh`가 유효한 값(1~100)이면 BSOH를 쓰고, 그렇지 않으면 `mSavedBatteryAsoc`가 유효할 때 ASOC를 씁니다.
 환산 사이클 N = mSavedBatteryUsage ÷ 100 (소수점 버림).
+
+> [!IMPORTANT]
+> 이 규칙은 판정뿐 아니라 **표시와 측정 용량 추정에도 그대로 적용**됩니다. 즉 화면의 건강도 값·게이지·점수·추정 용량이 모두 같은 H를 공유합니다. (`BatteryInfo.healthPercent`와 `BatteryInfo.assessment`가 같은 규칙으로 계산됨)
+> 과거에는 판정은 BSOH 우선, 표시는 ASOC 우선으로 갈라져 있어 같은 로그에서 화면값과 점수가 어긋날 수 있었습니다.
 
 아래 조건을 위에서부터 확인해 처음 일치하는 결과를 사용합니다.
 
@@ -65,8 +71,20 @@
 | 6 | H 80~84, N 30~(T−1) | 나쁨 (조기 열화) |
 | 7 | H 80~84, N T~1199 | 정상 |
 | 8 | H 85~100, N 30~1199 | 정상 |
+| 그 외 | 위 조건에 걸리지 않는 H(-2, 101) 또는 N 0~29 | 아래 표 참조 |
 
-T는 H 80/81/82/83/84에서 각각 500/467/434/400/350입니다.
+T는 H 80/81/82/83/84에서 각각 500/467/434/400/350이고, 그 외 H는 501을 씁니다.
+
+### 판정 불가·오류 경로
+
+| 상황 | 등급 | 화면 문구 |
+| --- | --- | --- |
+| 사이클을 읽지 못함(없음·음수) | 판정 불가(UNDETERMINED) | 데이터 오류 |
+| 사이클 0~29 (진단 하한 미만) | 진단 불가 | 진단 불가(사이클 부족) |
+| 건강도 입력 없음(-1, 0, 미존재) | 산정 불가 | 산정 불가 |
+| 건강도 입력이 1~100 범위 밖(-2, 101) | 판정 불가(UNDETERMINED) | 데이터 오류 |
+
+진단 하한은 `BatteryHealthClassifier.MIN_CYCLES_FOR_DIAGNOSIS`(=30) 상수로, 판정과 점수 공식 양쪽이 공유합니다.
 
 ### 종합 진단 점수 공식
 
@@ -124,8 +142,9 @@ app/src/main/java/com/alyaqdhan/galaxy_battery/
 ├── MainActivity.kt          # 대시보드 호스트
 ├── SetupActivity.kt         # 폴더 권한 부여/변경, 다이얼 코드
 ├── LogRawActivity.kt        # 원본 배터리 라인 화면 호스트
-├── BatteryParser.kt         # 로그 파싱(Android 의존 없는 순수 로직)
-├── BatteryCache.kt          # SharedPreferences 기반 결과 캐시
+├── BatteryParser.kt         # 로그 파싱 본문(Android 의존 없는 순수 로직)
+├── parser/                  # 파서 조각: 기기별 설계 용량표·파일 이름·숫자 스캐너
+├── BatteryCache.kt          # SharedPreferences 기반 결과 캐시(스키마 버전)
 ├── BatteryModels.kt         # BatteryInfo, DocEntry, ErrorDialog
 ├── BatteryHealth.kt         # 앱 내부 배터리 건강도 판정 로직(비공식)
 ├── BatteryReport.kt         # 공유용 진단 리포트 텍스트 생성
@@ -158,8 +177,11 @@ app/src/main/java/com/alyaqdhan/galaxy_battery/
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-단위 테스트는 파서(`BatteryParserTest`), 지역화(`LocalizationTest`),
+단위 테스트는 파서(`BatteryParserTest`), 판정(`BatteryHealthTest`),
+캐시 왕복(`BatteryCacheTest`), 지역화(`LocalizationTest`),
 스크롤바·테마(`ScrollbarTest`, `SystemColorsTest`)를 다룹니다.
+`BatteryCacheTest`는 SharedPreferences를 흉내 내어 "파싱 직후 판정"과
+"캐시 복원 후 판정"이 같은지 확인합니다. (BSOH 소실 회귀 방지)
 UI 테스트는 `SetupScreenUiTest`가 설정 화면의 버튼과 앱 이름을 확인합니다.
 
 ## 지역화

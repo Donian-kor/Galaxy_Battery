@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import android.provider.DocumentsContract
+import android.util.Log
 import com.alyaqdhan.galaxy_battery.BatteryCache
 import com.alyaqdhan.galaxy_battery.BatteryInfo
 import com.alyaqdhan.galaxy_battery.BatteryParser
@@ -21,6 +22,10 @@ class BatteryRepository(
     private val prefs: SharedPreferences
 ) {
 
+    private companion object {
+        const val TAG = "BatteryRepository"
+    }
+
     // ── Folder / file helpers ─────────────────────────────────────────────────
 
     fun hasPersistedPermission(folderUri: Uri): Boolean {
@@ -35,7 +40,11 @@ class BatteryRepository(
                 arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID),
                 null, null, null
             )?.use { it.count >= 0 } ?: false
-        } catch (_: Exception) { false }
+        } catch (e: Exception) {
+            // 권한 만료·URI 무효화를 "권한 없음"으로 뭉개면 문의 대응이 불가능하다.
+            Log.w(TAG, "persisted permission check failed for $folderUri", e)
+            false
+        }
     }
 
     fun listChildren(folderUri: Uri, parentId: String): List<DocEntry> {
@@ -61,7 +70,9 @@ class BatteryRepository(
                     result += DocEntry(id, name, mime, lastMod)
                 }
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.w(TAG, "listChildren failed for $parentId in $folderUri", e)
+        }
         return result
     }
 
