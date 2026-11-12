@@ -377,6 +377,11 @@ class BatteryParserTest {
         assertEquals(4000, BatteryParser.lookupDesignCapacity("SM-F741B"))
         assertEquals(5000, BatteryParser.lookupDesignCapacity("SM-S938B"))
         assertEquals(4900, BatteryParser.lookupDesignCapacity("SM-S936B"))
+        // S24 계열
+        assertEquals(4000, BatteryParser.lookupDesignCapacity("SM-S921B"))
+        assertEquals(4900, BatteryParser.lookupDesignCapacity("SM-S926B"))
+        assertEquals(5000, BatteryParser.lookupDesignCapacity("SM-S928B"))
+        assertEquals(4700, BatteryParser.lookupDesignCapacity("SM-S721B"))
         assertEquals(5000, BatteryParser.lookupDesignCapacity("SM-G998B"))
         assertEquals(4000, BatteryParser.lookupDesignCapacity("SM-G991B"))
         assertEquals(4500, BatteryParser.lookupDesignCapacity("SM-N986B"))

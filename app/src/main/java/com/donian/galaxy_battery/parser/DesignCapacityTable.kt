@@ -45,6 +45,12 @@ object DesignCapacityTable {
         Entry("S936", 4900, "S25+"),
         Entry("S938", 5000, "S25 Ultra"),
 
+        // S24
+        Entry("S921", 4000, "S24"),
+        Entry("S926", 4900, "S24+"),
+        Entry("S928", 5000, "S24 Ultra"),
+        Entry("S721", 4700, "S24 FE"),
+
         // S23
         Entry("S911", 3900, "S23"),
         Entry("S916", 4700, "S23+"),

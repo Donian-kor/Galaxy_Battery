@@ -23,14 +23,11 @@
 
 | 계열 | 등록된 모델 |
 |---|---|
-| Galaxy S | S10, S10e, S10+, S10 5G, S20, S20+, S20 Ultra, S20 FE, S21, S21+, S21 Ultra, S21 FE, S22, S22+, S22 Ultra, S23, S23+, S23 Ultra, S23 FE, S25, S25+, S25 Ultra, S26, S26+, S26 Ultra |
+| Galaxy S | S10, S10e, S10+, S10 5G, S20, S20+, S20 Ultra, S20 FE, S21, S21+, S21 Ultra, S21 FE, S22, S22+, S22 Ultra, S23, S23+, S23 Ultra, S23 FE, S24, S24+, S24 Ultra, S24 FE, S25, S25+, S25 Ultra, S26, S26+, S26 Ultra |
 | Galaxy Z Fold | Fold 1, Fold 2, Fold 3, Fold 4, Fold 5, Fold 6, Fold 7, Fold 8 |
 | Galaxy Z Flip | Flip 1, Flip 3, Flip 4, Flip 5, Flip 6, Flip 7, Flip 8 |
 | Galaxy Note | Note 10, Note 10+, Note 10+ 5G, Note 20, Note 20 Ultra |
 
-> [!NOTE]
-> S24 시리즈는 아직 등록되지 않았습니다. S24·S25·S26 코드가 겹치지 않아 추가만 하면 됩니다.
->
 > 이 표는 **설계 용량 조회용**이며, 배터리 건강도 판정 자체는 모델과 무관하게
 > 로그의 ASOC·BSOH·Battery Usage 값만으로 동작합니다.
 
