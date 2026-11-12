@@ -83,7 +83,10 @@ internal fun formatBatteryDate(dateMs: Long, korean: Boolean = false): String {
     return SimpleDateFormat(pattern, Locale.US).format(Date(dateMs))
 }
 
-/** The battery install date, or an empty string when the log didn't have one (0). */
+/**
+ * 8자리 날짜(배터리 제조일 또는 기기 최초사용일)를 로케일 형식으로.
+ * 0이면 로그에 그 값이 없다는 뜻이므로 빈 문자열.
+ */
 @Composable
 fun batteryDateText(dateMs: Long): String {
     val korean = LocalConfiguration.current.locales[0].language == "ko"

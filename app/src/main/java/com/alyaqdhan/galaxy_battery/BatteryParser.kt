@@ -112,7 +112,9 @@ object BatteryParser {
         var usageRaw = ""
         var batteryUsageValue: Int? = null
         var llbType = ""
-        var batteryDateMs = 0L
+        var manufactureDateMs = 0L
+        var calibratedDateMs = 0L
+        var firstUseDateMs = 0L
         var logTimestampMs = 0L
 
         // 용량 계산에 사용하는 배터리 서비스 값 (백업 블록 외부).
@@ -124,7 +126,10 @@ object BatteryParser {
         val fullDateTimeRegex = Regex("""(?:==\s*dumpstate:|dumpstate:|Build time:)\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})""")
         val bracketDateTimeRegex = Regex("""^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})]""")
         val dateTimeFmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+        // LLB CAL과 LLB MAN은 서로 다른 날짜다. 한 변수에 섞으면 기종마다 값의 의미가 달라진다.
         val llbRegex = Regex("""^LLB\s+(CAL|MAN):\s*(\d{8})\s*$""", RegexOption.IGNORE_CASE)
+        // `battery FirstUseDate: [20230310]` — 배터리 사용 기록 시작일.
+        val firstUseDateRegex = Regex("""FirstUseDate:\s*\[(\d{8})]""")
         val compactDateFmt = SimpleDateFormat("yyyyMMdd", Locale.US)
 
         // 정규식은 날짜와 LLB 두 곳에만 남기고, 값 추출은 NumberScanner로 처리한다.
@@ -149,12 +154,24 @@ object BatteryParser {
                     batteryUsageValue = extractSignedValueOrNull(t, "mSavedBatteryUsage:")
                     usage = batteryUsageValue?.takeIf { it >= 0 }?.div(100)
                 }
-                if (batteryDateMs == 0L && t.startsWith("LLB", ignoreCase = true)) {
+                if (t.startsWith("LLB", ignoreCase = true)) {
                     llbRegex.find(t)?.let { m ->
-                        llbType = m.groupValues[1].uppercase()
-                        batteryDateMs = try {
-                            compactDateFmt.parse(m.groupValues[2])?.time ?: 0L
-                        } catch (_: Exception) { 0L }
+                        val value = parseCompactDate(m.groupValues[2], compactDateFmt)
+                        when (m.groupValues[1].uppercase()) {
+                            "CAL" -> {
+                                llbType = "CAL"
+                                calibratedDateMs = value
+                            }
+                            "MAN" -> {
+                                if (llbType.isEmpty()) llbType = "MAN"
+                                manufactureDateMs = value
+                            }
+                        }
+                    }
+                }
+                if (firstUseDateMs == 0L) {
+                    firstUseDateRegex.find(t)?.let { m ->
+                        firstUseDateMs = parseCompactDate(m.groupValues[1], compactDateFmt)
                     }
                 }
                 if (logTimestampMs == 0L && t.length >= 19 && looksLikeTimestampLine(t)) {
@@ -222,7 +239,7 @@ object BatteryParser {
         }
 
         val readSuccess = healthPercent != null || bsoh != null || usage != null ||
-                batteryDateMs != 0L || asocSeen
+                manufactureDateMs != 0L || calibratedDateMs != 0L || asocSeen
 
         return BatteryInfo(
             healthPercent = healthPercent,
@@ -237,7 +254,9 @@ object BatteryParser {
             usageRaw = usageRaw,
             batteryUsageValue = batteryUsageValue,
             llbType = llbType,
-            batteryDateMs = batteryDateMs,
+            manufactureDateMs = manufactureDateMs,
+            calibratedDateMs = calibratedDateMs,
+            firstUseDateMs = firstUseDateMs,
             logFileName = fileName,
             logTimestampMs = logTimestampMs,
             readSuccess = readSuccess,
@@ -252,6 +271,14 @@ object BatteryParser {
     /** 정규식 두 개를 줄마다 돌리지 않도록, 날짜가 있을 수 있는 줄만 걸러낸다. */
     private fun looksLikeTimestampLine(t: String): Boolean =
         t[0] == '[' || t.contains("dumpstate:") || t.contains("Build time:")
+
+    /** 로그에 흔한 8자리 날짜(YYYYMMDD)를 epoch millis로. 깨졌으면 0. */
+    private fun parseCompactDate(text: String, format: SimpleDateFormat): Long =
+        try {
+            format.parse(text)?.time ?: 0L
+        } catch (_: Exception) {
+            0L
+        }
 
     private fun extractValueOrNull(line: String, key: String): Int? =
         extractSignedValueOrNull(line, key)?.takeIf { it >= 0 }

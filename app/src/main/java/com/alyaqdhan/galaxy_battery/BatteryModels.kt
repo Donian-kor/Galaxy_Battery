@@ -17,7 +17,25 @@ data class BatteryInfo(
     val usageRaw: String = "",
     val batteryUsageValue: Int? = null,
     val llbType: String = "",
-    val batteryDateMs: Long = 0L,
+    /**
+     * 배터리 제조일(`LLB MAN`). 새 배터리로 교체하면 새 배터리의 생산일로 바뀐다.
+     */
+    val manufactureDateMs: Long = 0L,
+    /**
+     * 배터리 최초 보정/사용일(`LLB CAL`).
+     *
+     * 공식 센터에서 배터리를 교체하고 초기화(리셋)하면 **교체 당일**로 바뀐다.
+     * 배터리 사용 개월 수의 근거로 쓸 수 있는 가장 확실한 값이다.
+     * 구형 기종에는 값이 있고 One UI 5.1+로 업데이트된 기종은 비어 있다.
+     */
+    val calibratedDateMs: Long = 0L,
+    /**
+     * 기기(메인보드) 최초 사용일(`battery FirstUseDate`).
+     *
+     * **배터리 교체와 무관하다.** 배터리를 갈아도 유지되며, 메인보드 교체·
+     * 특정 리셋·펌웨어 패치 시에만 바뀐다.
+     */
+    val firstUseDateMs: Long = 0L,
     val logFileName: String = "",
     val logTimestampMs: Long = 0L,
     val readSuccess: Boolean = false,

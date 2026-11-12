@@ -107,7 +107,15 @@ object BatteryReport {
         )
         lines += context.getString(
             R.string.report_install_date,
-            value(formatBatteryDate(info.batteryDateMs, dateStyleKorean))
+            value(formatBatteryDate(info.calibratedDateMs, dateStyleKorean))
+        )
+        lines += context.getString(
+            R.string.report_manufacture_date,
+            value(formatBatteryDate(info.manufactureDateMs, dateStyleKorean))
+        )
+        lines += context.getString(
+            R.string.report_first_use_date,
+            value(formatBatteryDate(info.firstUseDateMs, dateStyleKorean))
         )
 
         return lines.joinToString("\n")

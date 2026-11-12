@@ -5,6 +5,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 /**
  * 캐시 왕복 검증.
@@ -103,6 +105,31 @@ class BatteryCacheTest {
         assertEquals(parsed.batteryUsageValue, restored.batteryUsageValue)
         assertEquals(parsed.bsohValue, restored.bsohValue)
         assertEquals(parsed.assessment, restored.assessment)
+    }
+
+    @Test
+    fun `llb cal and man survive the round trip separately`() {
+        // 제조일(LLB MAN)과 장착·보정일(LLB CAL)은 별개 필드다.
+        val parsed = parse(
+            "LLB CAL: 20190925\n" +
+                    "LLB MAN: 20190924\n" +
+                    "battery FirstUseDate: [20230310]\n" +
+                    "mSavedBatteryUsage: 30000\n"
+        )
+        val restored = roundTrip(parsed)
+
+        assertEquals(
+            requireNotNull(SimpleDateFormat("yyyyMMdd", Locale.US).parse("20190924")).time,
+            restored.manufactureDateMs
+        )
+        assertEquals(
+            requireNotNull(SimpleDateFormat("yyyyMMdd", Locale.US).parse("20190925")).time,
+            restored.calibratedDateMs
+        )
+        assertEquals(
+            requireNotNull(SimpleDateFormat("yyyyMMdd", Locale.US).parse("20230310")).time,
+            restored.firstUseDateMs
+        )
     }
 
     @Test

@@ -738,55 +738,78 @@ private fun MetricTile(
     }
 }
 
+/**
+ * 배터리 날짜.
+ *
+ * `LLB CAL`이 배터리 사용 개월의 근거다. 공식 센터에서 배터리를 교체하고
+ * 초기화하면 이 값이 교체 당일로 바뀐다. 값이 없으면(One UI 5.1+ 업데이트 기종)
+ * 개월 수를 표시하지 않고 제조일만 보여준다.
+ *
+ * `battery FirstUseDate`는 기기(메인보드) 최초 사용일이라 배터리 날짜로 쓰지 않는다.
+ */
 @Composable
 private fun BatteryMetaSection(
     info: BatteryInfo,
     isLoading: Boolean
 ) {
-    val installedDate = batteryDateText(info.batteryDateMs)
-    val monthsUsed = if (isLoading) null else monthsSince(info.batteryDateMs)
+    val calibratedDate = batteryDateText(info.calibratedDateMs)
+    val manufactureDate = batteryDateText(info.manufactureDateMs)
+    val monthsUsed = if (isLoading) null else monthsSince(info.calibratedDateMs)
     val muted = textMuted()
     val border = cardBorderColor()
     val inset = appColors().inset
 
-    val installedLabel = when {
+    val primaryLabel = when {
         isLoading -> stringResource(R.string.log_pill_loading)
-        installedDate.isNotEmpty() -> stringResource(R.string.battery_installed_on, installedDate)
+        calibratedDate.isNotEmpty() -> stringResource(R.string.battery_installed_on, calibratedDate)
+        manufactureDate.isNotEmpty() -> stringResource(R.string.battery_manufactured_on, manufactureDate)
         else -> stringResource(R.string.battery_install_unknown)
     }
     val monthsLabel = monthsUsed?.let {
         pluralStringResource(R.plurals.battery_months_used, it, it)
     }
+    // 보정일이 있을 때만 제조일을 보조 줄로 덧붙인다.
+    val secondaryLabel = manufactureDate
+        .takeIf { it.isNotEmpty() && it != calibratedDate }
+        ?.let { stringResource(R.string.battery_manufactured_on, it) }
 
-    BoxWithConstraints(
+    Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(inset.copy(alpha = 0.6f))
             .border(1.dp, border, RoundedCornerShape(10.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (maxWidth < 360.dp) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BatteryDateIcon()
-                Spacer(Modifier.width(8.dp))
-                Column(
-                    Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    BatteryDateLabel(installedLabel, muted, Modifier.fillMaxWidth())
-                    monthsLabel?.let { BatteryMonthsBadge(it, border) }
-                }
-            }
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BatteryDateIcon()
-                Spacer(Modifier.width(6.dp))
-                BatteryDateLabel(installedLabel, muted, Modifier.weight(1f))
+        BatteryDateIcon()
+        Spacer(Modifier.width(8.dp))
+        Column(
+            Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BatteryDateLabel(
+                    primaryLabel,
+                    muted,
+                    Modifier.weight(1f, fill = false)
+                )
                 monthsLabel?.let {
                     Spacer(Modifier.width(8.dp))
                     BatteryMonthsBadge(it, border)
                 }
+            }
+            secondaryLabel?.let {
+                Text(
+                    it,
+                    color = muted.copy(alpha = 0.75f),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }

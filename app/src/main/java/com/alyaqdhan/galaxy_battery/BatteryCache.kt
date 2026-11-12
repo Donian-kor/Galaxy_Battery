@@ -16,7 +16,7 @@ object BatteryCache {
      * 캐시 스키마 버전. 저장 항목이 바뀌면 올려서 이전 스키마로 쓰인 캐시를
      * 무효화한다. (버전이 없는 구 캐시는 판정 입력 일부가 비어 있어 버려야 한다)
      */
-    private const val SCHEMA_VERSION = 2
+    private const val SCHEMA_VERSION = 4
     private const val KEY_SCHEMA_VERSION = "cache_schema_version"
 
     private const val MISSING_INT = Int.MIN_VALUE
@@ -38,7 +38,9 @@ object BatteryCache {
             putInt    ("cache_bsoh_value",          info.bsohValue ?: MISSING_INT)
             putInt    ("cache_battery_usage_value", info.batteryUsageValue ?: MISSING_INT)
             putString ("cache_usage_raw",           info.usageRaw)
-            putLong   ("cache_battery_date_ms",  info.batteryDateMs)
+            putLong   ("cache_manufacture_date_ms", info.manufactureDateMs)
+            putLong   ("cache_calibrated_date_ms", info.calibratedDateMs)
+            putLong   ("cache_first_use_date_ms", info.firstUseDateMs)
             putInt    ("cache_charge_counter_mah",  info.chargeCounterMah ?: -1)
             putInt    ("cache_measured_capacity",   info.measuredCapacityMah ?: -1)
             putBoolean("cache_capacity_estimated",  info.capacityEstimated)
@@ -72,7 +74,9 @@ object BatteryCache {
             batteryUsageValue = prefs.getInt("cache_battery_usage_value", MISSING_INT)
                 .takeIf { it != MISSING_INT },
             usageRaw          = prefs.getString("cache_usage_raw", "") ?: "",
-            batteryDateMs    = prefs.getLong("cache_battery_date_ms", 0L),
+            manufactureDateMs = prefs.getLong("cache_manufacture_date_ms", 0L),
+            calibratedDateMs  = prefs.getLong("cache_calibrated_date_ms", 0L),
+            firstUseDateMs    = prefs.getLong("cache_first_use_date_ms", 0L),
             logFileName       = fileName,
             logTimestampMs    = prefs.getLong("cache_log_timestamp_ms", 0L),
             readSuccess       = true,
@@ -105,7 +109,9 @@ object BatteryCache {
             remove("cache_bsoh_value")
             remove("cache_battery_usage_value")
             remove("cache_usage_raw")
-            remove("cache_battery_date_ms")
+            remove("cache_manufacture_date_ms")
+            remove("cache_calibrated_date_ms")
+            remove("cache_first_use_date_ms")
             remove("cache_voltage_mv")
             remove("cache_temperature_c")
             remove("cache_current_ma")

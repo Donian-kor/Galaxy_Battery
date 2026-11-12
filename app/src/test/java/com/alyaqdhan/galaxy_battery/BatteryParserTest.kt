@@ -202,23 +202,78 @@ class BatteryParserTest {
     }
 
     @Test
-    fun `llb line yields the battery manufacture date`() {
-        val info = parse("LLB CAL: 20240105\n")
+    fun `llb man line yields the battery manufacture date`() {
+        val info = parse("LLB MAN: 20210825\n")
 
         // The parser reads the date in the device's default zone, so build the
         // expectation with the same default zone instead of a hard-coded epoch.
         val expected = requireNotNull(
-            SimpleDateFormat("yyyyMMdd", Locale.US).parse("20240105")
+            SimpleDateFormat("yyyyMMdd", Locale.US).parse("20210825")
         ).time
-        assertEquals(expected, info.batteryDateMs)
+        assertEquals(expected, info.manufactureDateMs)
+        assertEquals("MAN", info.llbType)
+        // CAL이 없으면 장착일로 쓰지 않는다.
+        assertEquals(0L, info.calibratedDateMs)
+    }
+
+    @Test
+    fun `llb cal and man are separate dates`() {
+        // 실제 Note 10+ 로그: CAL(보정)이 MAN(제조)보다 하루 뒤다.
+        val info = parse("LLB CAL: 20190925\nLLB MAN: 20190924\n")
+
+        val cal = requireNotNull(SimpleDateFormat("yyyyMMdd", Locale.US).parse("20190925")).time
+        val man = requireNotNull(SimpleDateFormat("yyyyMMdd", Locale.US).parse("20190924")).time
+        assertEquals(cal, info.calibratedDateMs)
+        assertEquals(man, info.manufactureDateMs)
+        // 한 변수에 섞이지 않는다.
+        assertTrue(info.calibratedDateMs > info.manufactureDateMs)
         assertEquals("CAL", info.llbType)
+    }
+
+    @Test
+    fun `llb line without a date leaves both dates empty`() {
+        // 폴드3처럼 CAL 값이 비어 있는 로그.
+        val info = parse("LLB CAL:\n")
+
+        assertEquals(0L, info.calibratedDateMs)
+        assertEquals(0L, info.manufactureDateMs)
+        assertEquals("", info.llbType)
+    }
+
+    @Test
+    fun `first use date is the device date not the battery date`() {
+        // 실제 폴드3 로그: CAL은 비어 있고 FirstUseDate만 있다.
+        // FirstUseDate는 기기(메인보드) 최초 사용일이라 배터리 날짜가 아니다.
+        val info = parse(
+            "LLB CAL:\n" +
+                    "LLB MAN: 20210825\n" +
+                    "battery FirstUseDate: [20230310]\n"
+        )
+
+        val expected = requireNotNull(
+            SimpleDateFormat("yyyyMMdd", Locale.US).parse("20230310")
+        ).time
+        assertEquals(expected, info.firstUseDateMs)
+        // 배터리 보정일로는 쓰지 않는다.
+        assertEquals(0L, info.calibratedDateMs)
+        assertEquals(
+            requireNotNull(SimpleDateFormat("yyyyMMdd", Locale.US).parse("20210825")).time,
+            info.manufactureDateMs
+        )
+    }
+
+    @Test
+    fun `malformed first use date is ignored`() {
+        val info = parse("battery FirstUseDate: [2023ab10]\n")
+
+        assertEquals(0L, info.firstUseDateMs)
     }
 
     @Test
     fun `llb date is ignored when malformed`() {
         val info = parse("LLB MAN: 20xx0105\n")
 
-        assertEquals(0L, info.batteryDateMs)
+        assertEquals(0L, info.manufactureDateMs)
         assertEquals("", info.llbType)
     }
 
