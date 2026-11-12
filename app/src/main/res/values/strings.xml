@@ -91,11 +91,11 @@
 
     <!-- Dashboard header and battery meta ribbon -->
     <!-- LLB CAL: 배터리 최초 보정/사용일. 공식 센터 교체+초기화 시 교체 당일로 바뀐다. -->
-    <string name="battery_installed_on">배터리 보정/사용: %1$s</string>
+    <string name="battery_installed_on">배터리 장착일: %1$s</string>
     <!-- LLB MAN: 배터리 제조일 -->
     <string name="battery_manufactured_on">배터리 제조: %1$s</string>
     <!-- ril.actdate: 기기 최초 통화일 -->
-    <string name="device_activated_on">개통: %1$s</string>
+    <string name="device_activated_on">최초 통화일: %1$s</string>
     <string name="battery_install_unknown">배터리 날짜 정보 없음</string>
     <plurals name="battery_months_used">
         <item quantity="one">%1$d개월 경과</item>
@@ -177,7 +177,7 @@
     <string name="report_measured_capacity_estimated">추정 유효 용량: %1$s</string>
     <string name="report_log_file">로그 파일: %1$s</string>
     <string name="report_log_time">로그 생성: %1$s</string>
-    <string name="report_install_date">배터리 보정/사용 시작일: %1$s</string>
+    <string name="report_install_date">배터리 장착일: %1$s</string>
     <string name="report_manufacture_date">배터리 제조일: %1$s</string>
     <string name="report_first_use_date">기기 최초 사용일: %1$s</string>
     <string name="report_activation_date">최초 통화일: %1$s</string>
