@@ -36,6 +36,12 @@ data class BatteryInfo(
      * 특정 리셋·펌웨어 패치 시에만 바뀐다.
      */
     val firstUseDateMs: Long = 0L,
+    /**
+     * 기기 최초 통화일(`ril.actdate`). SYSTEM PROPERTIES 영역에 있어 배터리 블록과 별개로 읽는다.
+     *
+     * 개통 시점의 기준값이며, 메인보드 교체 시에만 바뀐다.
+     */
+    val activationDateMs: Long = 0L,
     val logFileName: String = "",
     val logTimestampMs: Long = 0L,
     val readSuccess: Boolean = false,

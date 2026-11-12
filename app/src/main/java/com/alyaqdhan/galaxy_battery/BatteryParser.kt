@@ -115,6 +115,7 @@ object BatteryParser {
         var manufactureDateMs = 0L
         var calibratedDateMs = 0L
         var firstUseDateMs = 0L
+        var activationDateMs = 0L
         var logTimestampMs = 0L
 
         // 용량 계산에 사용하는 배터리 서비스 값 (백업 블록 외부).
@@ -130,6 +131,8 @@ object BatteryParser {
         val llbRegex = Regex("""^LLB\s+(CAL|MAN):\s*(\d{8})\s*$""", RegexOption.IGNORE_CASE)
         // `battery FirstUseDate: [20230310]` — 배터리 사용 기록 시작일.
         val firstUseDateRegex = Regex("""FirstUseDate:\s*\[(\d{8})]""")
+        // `[ril.actdate]: [20220325]` — 기기 최초 통화일. SYSTEM PROPERTIES 영역에 있다.
+        val activationDateRegex = Regex("""^\[ril\.actdate]:\s*\[(\d{8})]""")
         val compactDateFmt = SimpleDateFormat("yyyyMMdd", Locale.US)
 
         // 정규식은 날짜와 LLB 두 곳에만 남기고, 값 추출은 NumberScanner로 처리한다.
@@ -172,6 +175,11 @@ object BatteryParser {
                 if (firstUseDateMs == 0L) {
                     firstUseDateRegex.find(t)?.let { m ->
                         firstUseDateMs = parseCompactDate(m.groupValues[1], compactDateFmt)
+                    }
+                }
+                if (activationDateMs == 0L) {
+                    activationDateRegex.find(t)?.let { m ->
+                        activationDateMs = parseCompactDate(m.groupValues[1], compactDateFmt)
                     }
                 }
                 if (logTimestampMs == 0L && t.length >= 19 && looksLikeTimestampLine(t)) {
@@ -257,6 +265,7 @@ object BatteryParser {
             manufactureDateMs = manufactureDateMs,
             calibratedDateMs = calibratedDateMs,
             firstUseDateMs = firstUseDateMs,
+            activationDateMs = activationDateMs,
             logFileName = fileName,
             logTimestampMs = logTimestampMs,
             readSuccess = readSuccess,

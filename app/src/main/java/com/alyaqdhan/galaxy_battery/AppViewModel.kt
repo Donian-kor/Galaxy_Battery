@@ -313,6 +313,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             remove("cache_manufacture_date_ms")
             remove("cache_calibrated_date_ms")
             remove("cache_first_use_date_ms")
+            remove("cache_activation_date_ms")
             remove("cache_voltage_mv")
             remove("cache_temperature_c")
             remove("cache_current_ma")

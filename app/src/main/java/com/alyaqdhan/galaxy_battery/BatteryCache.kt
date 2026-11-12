@@ -16,7 +16,7 @@ object BatteryCache {
      * 캐시 스키마 버전. 저장 항목이 바뀌면 올려서 이전 스키마로 쓰인 캐시를
      * 무효화한다. (버전이 없는 구 캐시는 판정 입력 일부가 비어 있어 버려야 한다)
      */
-    private const val SCHEMA_VERSION = 4
+    private const val SCHEMA_VERSION = 5
     private const val KEY_SCHEMA_VERSION = "cache_schema_version"
 
     private const val MISSING_INT = Int.MIN_VALUE
@@ -41,6 +41,7 @@ object BatteryCache {
             putLong   ("cache_manufacture_date_ms", info.manufactureDateMs)
             putLong   ("cache_calibrated_date_ms", info.calibratedDateMs)
             putLong   ("cache_first_use_date_ms", info.firstUseDateMs)
+            putLong   ("cache_activation_date_ms", info.activationDateMs)
             putInt    ("cache_charge_counter_mah",  info.chargeCounterMah ?: -1)
             putInt    ("cache_measured_capacity",   info.measuredCapacityMah ?: -1)
             putBoolean("cache_capacity_estimated",  info.capacityEstimated)
@@ -77,6 +78,7 @@ object BatteryCache {
             manufactureDateMs = prefs.getLong("cache_manufacture_date_ms", 0L),
             calibratedDateMs  = prefs.getLong("cache_calibrated_date_ms", 0L),
             firstUseDateMs    = prefs.getLong("cache_first_use_date_ms", 0L),
+            activationDateMs  = prefs.getLong("cache_activation_date_ms", 0L),
             logFileName       = fileName,
             logTimestampMs    = prefs.getLong("cache_log_timestamp_ms", 0L),
             readSuccess       = true,
@@ -112,6 +114,7 @@ object BatteryCache {
             remove("cache_manufacture_date_ms")
             remove("cache_calibrated_date_ms")
             remove("cache_first_use_date_ms")
+            remove("cache_activation_date_ms")
             remove("cache_voltage_mv")
             remove("cache_temperature_c")
             remove("cache_current_ma")

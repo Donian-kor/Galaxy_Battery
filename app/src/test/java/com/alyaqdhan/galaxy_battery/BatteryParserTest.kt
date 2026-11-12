@@ -278,6 +278,23 @@ class BatteryParserTest {
     }
 
     @Test
+    fun `activation date comes from ril actdate`() {
+        val info = parse("[ril.actdate]: [20220325]\n")
+
+        val expected = requireNotNull(
+            SimpleDateFormat("yyyyMMdd", Locale.US).parse("20220325")
+        ).time
+        assertEquals(expected, info.activationDateMs)
+    }
+
+    @Test
+    fun `activation date is ignored when malformed`() {
+        val info = parse("[ril.actdate]: [2022ab25]\n")
+
+        assertEquals(0L, info.activationDateMs)
+    }
+
+    @Test
     fun `file name timestamp is zero when the name has no date`() {
         assertEquals(0L, BatteryParser.extractTimestampFromFileName("dumpState_SM-G991B.log"))
     }

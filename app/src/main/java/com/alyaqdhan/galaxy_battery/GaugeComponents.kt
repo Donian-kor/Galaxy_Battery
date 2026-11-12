@@ -746,6 +746,7 @@ private fun MetricTile(
  * 개월 수를 표시하지 않고 제조일만 보여준다.
  *
  * `battery FirstUseDate`는 기기(메인보드) 최초 사용일이라 배터리 날짜로 쓰지 않는다.
+ * 개통일(`ril.actdate`)은 참고 정보로만 보조 줄에 덧붙인다.
  */
 @Composable
 private fun BatteryMetaSection(
@@ -754,6 +755,7 @@ private fun BatteryMetaSection(
 ) {
     val calibratedDate = batteryDateText(info.calibratedDateMs)
     val manufactureDate = batteryDateText(info.manufactureDateMs)
+    val activationDate = batteryDateText(info.activationDateMs)
     val monthsUsed = if (isLoading) null else monthsSince(info.calibratedDateMs)
     val muted = textMuted()
     val border = cardBorderColor()
@@ -768,10 +770,13 @@ private fun BatteryMetaSection(
     val monthsLabel = monthsUsed?.let {
         pluralStringResource(R.plurals.battery_months_used, it, it)
     }
-    // 보정일이 있을 때만 제조일을 보조 줄로 덧붙인다.
-    val secondaryLabel = manufactureDate
-        .takeIf { it.isNotEmpty() && it != calibratedDate }
-        ?.let { stringResource(R.string.battery_manufactured_on, it) }
+    // 보조 줄: 제조일과 개통일. 이미 기본 줄에 쓰인 값은 건너뛴다.
+    val secondaryLabel = listOfNotNull(
+        manufactureDate.takeIf { it.isNotEmpty() && it != calibratedDate && it != activationDate }
+            ?.let { stringResource(R.string.battery_manufactured_on, it) },
+        activationDate.takeIf { it.isNotEmpty() && it != calibratedDate }
+            ?.let { stringResource(R.string.device_activated_on, it) }
+    ).takeIf { it.isNotEmpty() }?.joinToString("  ·  ")
 
     Row(
         Modifier

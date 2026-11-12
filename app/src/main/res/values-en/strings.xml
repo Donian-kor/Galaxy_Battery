@@ -94,6 +94,8 @@
     <string name="battery_installed_on">Battery calibrated: %1$s</string>
     <!-- LLB MAN: battery manufacture date -->
     <string name="battery_manufactured_on">Battery made: %1$s</string>
+    <!-- ril.actdate: device first call date -->
+    <string name="device_activated_on">Activated: %1$s</string>
     <string name="battery_install_unknown">Battery date info unavailable</string>
     <plurals name="battery_months_used">
         <item quantity="one">%1$d month elapsed</item>
@@ -178,6 +180,7 @@
     <string name="report_install_date">Battery Calibrated/Used Since: %1$s</string>
     <string name="report_manufacture_date">Battery Manufactured: %1$s</string>
     <string name="report_first_use_date">Device First Used: %1$s</string>
+    <string name="report_activation_date">First Call Date: %1$s</string>
     <string name="report_none">No info</string>
 
     <!-- Footer -->
