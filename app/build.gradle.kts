@@ -6,14 +6,14 @@ plugins {
 }
 
 android {
-    namespace = "com.alyaqdhan.galaxy_battery"
+    namespace = "com.donian.galaxy_battery"
 
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.alyaqdhan.galaxy_battery"
+        applicationId = "com.donian.galaxy_battery"
         minSdk = 26
         targetSdk = 37
         // major * 10000 + minor * 100 + patch, so it always goes up with versionName

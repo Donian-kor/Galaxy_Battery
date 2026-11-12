@@ -24,7 +24,7 @@
 - Galaxy Note: Note10, Note10+, Note20
 
 - 앱 이름: 갤럭시 배터리 정보
-- 패키지: `com.alyaqdhan.galaxy_battery`
+- 패키지: `com.donian.galaxy_battery`
 - 버전: 2.2.1 (versionCode 20201)
 - 최소 요구: Android 8.0 (minSdk 26) / 대상 SDK 37
 
@@ -220,7 +220,7 @@ T는 H 80/81/82/83/84에서 각각 500/467/434/400/350이고, 그 외 H는 501�
 ## 프로젝트 구조
 
 ```
-app/src/main/java/com/alyaqdhan/galaxy_battery/
+app/src/main/java/com/donian/galaxy_battery/
 ├── AppViewModel.kt          # 화면 상태와 폴더/스캔 흐름 전체 제어
 ├── GalaxyBatteryApp.kt      # 앱 전용 공유 AppViewModel 소유
 ├── MainActivity.kt          # 대시보드 호스트
