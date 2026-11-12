@@ -1,5 +1,14 @@
 package com.alyaqdhan.galaxy_battery
 
+import kotlin.math.abs
+
+enum class BatteryHealthStatus {
+    OK,
+    INSUFFICIENT_CYCLES,
+    HEALTH_UNAVAILABLE,
+    INVALID_DATA
+}
+
 enum class BatteryHealthGrade {
     GOOD,
     NORMAL,
@@ -15,166 +24,181 @@ enum class BatteryHealthBadReason {
     EARLY_DEGRADATION
 }
 
+enum class HealthSource {
+    BSOH,
+    ASOC
+}
+
 data class BatteryHealthAssessment(
+    val status: BatteryHealthStatus,
     val grade: BatteryHealthGrade,
     val convertedCycles: Int?,
     val diagnosticIndexRange: IntRange?,
     val badReason: BatteryHealthBadReason? = null,
-    val score: Int? = null
+    val score: Int? = null,
+    val healthValue: Int? = null,
+    val healthSource: HealthSource? = null,
+    val isSourceVerified: Boolean = false,
+    val sourceMismatch: Boolean = false,
+    val isCustomRule: Boolean = false,
+    val displayText: String? = null
 )
 
 /** 앱 내부 커뮤니티 판정표이며 삼성 공식 진단식이 아니다. */
 object BatteryHealthClassifier {
     private fun clamp01(value: Double): Double = value.coerceIn(0.0, 1.0)
 
-    private fun toBadEarlyScore(cycles: Int, asoc: Int): Int {
-        val threshold = when (asoc) {
-            66 -> 501
-            67 -> 501
-            68 -> 501
-            69 -> 501
-            70 -> 501
-            71 -> 501
-            72 -> 501
-            73 -> 501
-            74 -> 501
-            75 -> 501
-            76 -> 501
-            77 -> 501
-            78 -> 501
-            79 -> 501
-            80 -> 500
-            81 -> 467
-            82 -> 434
-            83 -> 400
-            84 -> 350
-            else -> 501
-        }
-        val lower = when (asoc) {
-            in 66..79 -> 30
-            in 80..84 -> 30
-            else -> 30
-        }
-        val score = 20.0 + 29.0 * (cycles - lower) / (threshold - lower)
-        return Math.round(score.coerceIn(20.0, 49.0)).toInt()
+    private fun getT(h: Int): Int = when (h) {
+        80 -> 500
+        81 -> 467
+        82 -> 434
+        83 -> 400
+        84 -> 350
+        in 66..79 -> 501
+        else -> 501
     }
 
-    private fun gradeScoreRange(grade: BatteryHealthGrade): IntRange? = when (grade) {
-        BatteryHealthGrade.BAD -> 0..49
-        BatteryHealthGrade.WEAK -> 50..69
-        BatteryHealthGrade.NORMAL -> 70..84
+    private fun gradeScoreRange(grade: BatteryHealthGrade, badReason: BatteryHealthBadReason? = null): IntRange? = when (grade) {
         BatteryHealthGrade.GOOD -> 85..100
+        BatteryHealthGrade.NORMAL -> 70..84
+        BatteryHealthGrade.WEAK -> 50..69
+        BatteryHealthGrade.BAD -> if (badReason == BatteryHealthBadReason.END_OF_LIFE) 0..19 else 20..49
         BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE,
         BatteryHealthGrade.CALCULATION_UNAVAILABLE,
         BatteryHealthGrade.UNDETERMINED -> null
     }
 
-    private fun finalScoreInRange(rawScore: Double, range: IntRange): Int {
-        val clamped = rawScore.coerceIn(range.first.toDouble(), range.last.toDouble())
-        return Math.round(clamped).toInt()
-    }
-
-    private fun computeFormulaScore(grade: BatteryHealthGrade, asoc: Int?, cycles: Int): Int? {
-        if (asoc == null) return null
-        val range = gradeScoreRange(grade) ?: return null
+    private fun computeFormulaScore(h: Int, cycles: Int, grade: BatteryHealthGrade, badReason: BatteryHealthBadReason?): Int? {
+        val hDouble = h.toDouble()
+        val nDouble = cycles.toDouble()
         val raw = when (grade) {
             BatteryHealthGrade.GOOD -> {
-                val a = clamp01((asoc - 80.0) / 20.0)
-                val c = clamp01((1199.0 - cycles) / 1199.0)
-                85.0 + (100.0 - 85.0) * Math.pow(a, 0.4) * Math.pow(c, 0.6)
+                val a = clamp01((hDouble - 80.0) / 20.0)
+                val c = clamp01((1199.0 - nDouble) / 1199.0)
+                85.0 + 15.0 * Math.pow(a, 0.4) * Math.pow(c, 0.6)
             }
             BatteryHealthGrade.NORMAL -> {
-                val a = clamp01((asoc - 66.0) / 13.0)
-                val c = clamp01((1199.0 - cycles) / 698.0)
-                70.0 + (84.0 - 70.0) * Math.pow(a, 0.4) * Math.pow(c, 0.6)
+                val a = clamp01((hDouble - 66.0) / 13.0)
+                val c = clamp01((1199.0 - nDouble) / 698.0)
+                70.0 + 14.0 * Math.pow(a, 0.4) * Math.pow(c, 0.6)
             }
             BatteryHealthGrade.WEAK -> {
-                val a = clamp01((asoc - 50.0) / 15.0)
-                val c = clamp01(1.0 - (cycles - 1200.0) / 1200.0)
-                50.0 + (69.0 - 50.0) * Math.pow(a, 0.4) * Math.pow(c, 0.6)
+                val a = clamp01((hDouble - 50.0) / 15.0)
+                val c = clamp01(1.0 - (nDouble - 1200.0) / 1200.0)
+                50.0 + 19.0 * Math.pow(a, 0.4) * Math.pow(c, 0.6)
             }
             BatteryHealthGrade.BAD -> {
-                if (asoc <= 55) {
-                    val a = clamp01(asoc / 55.0)
-                    val c = clamp01(1.0 - (cycles - 1200.0) / 1800.0)
+                if (badReason == BatteryHealthBadReason.END_OF_LIFE) {
+                    val a = clamp01(hDouble / 55.0)
+                    val c = clamp01(1.0 - (nDouble - 1200.0) / 1800.0)
                     19.0 * Math.pow(a, 0.4) * Math.pow(c, 0.6)
                 } else {
-                    val threshold = when (asoc) {
-                        66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79 -> 501
-                        80 -> 500
-                        81 -> 467
-                        82 -> 434
-                        83 -> 400
-                        84 -> 350
-                        else -> 501
-                    }
-                    20.0 + 29.0 * (cycles - 30.0) / (threshold - 30.0)
+                    val t = getT(h).toDouble()
+                    20.0 + 29.0 * (nDouble - 30.0) / (t - 30.0)
                 }
             }
             else -> return null
         }
-        return finalScoreInRange(raw, range)
+        val targetRange = gradeScoreRange(grade, badReason) ?: return null
+        val rounded = Math.round(raw).toInt()
+        return rounded.coerceIn(targetRange.first, targetRange.last)
     }
 
-    fun assess(asoc: Int?, batteryUsage: Int?): BatteryHealthAssessment {
+    fun assess(asoc: Int?, batteryUsage: Int?, bsoh: Int? = null): BatteryHealthAssessment {
         val cycles = batteryUsage?.takeIf { it >= 0 }?.div(100)
+
         if (cycles == null) {
-            return BatteryHealthAssessment(BatteryHealthGrade.UNDETERMINED, null, null)
+            return BatteryHealthAssessment(
+                status = BatteryHealthStatus.INVALID_DATA,
+                grade = BatteryHealthGrade.UNDETERMINED,
+                convertedCycles = null,
+                diagnosticIndexRange = null
+            )
         }
 
         if (cycles < 30) {
             return BatteryHealthAssessment(
-                BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE,
-                cycles,
-                null
+                status = BatteryHealthStatus.INSUFFICIENT_CYCLES,
+                grade = BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE,
+                convertedCycles = cycles,
+                diagnosticIndexRange = null
             )
         }
-        if (asoc == -1 || asoc == 0) {
-            return BatteryHealthAssessment(
-                BatteryHealthGrade.CALCULATION_UNAVAILABLE,
-                cycles,
-                null
-            )
+
+        val isBsohValid = bsoh != null && bsoh in 1..100
+        val isAsocValid = asoc != null && asoc in 1..100
+
+        val healthH: Int
+        val source: HealthSource
+        val isSourceVerified: Boolean
+
+        if (bsoh != null && isBsohValid) {
+            healthH = bsoh
+            source = HealthSource.BSOH
+            isSourceVerified = false
+        } else if (asoc != null && isAsocValid) {
+            healthH = asoc
+            source = HealthSource.ASOC
+            isSourceVerified = true
+        } else {
+            if (asoc == null || asoc == -1 || asoc == 0) {
+                return BatteryHealthAssessment(
+                    status = BatteryHealthStatus.HEALTH_UNAVAILABLE,
+                    grade = BatteryHealthGrade.CALCULATION_UNAVAILABLE,
+                    convertedCycles = cycles,
+                    diagnosticIndexRange = null
+                )
+            } else {
+                return BatteryHealthAssessment(
+                    status = BatteryHealthStatus.INVALID_DATA,
+                    grade = BatteryHealthGrade.UNDETERMINED,
+                    convertedCycles = cycles,
+                    diagnosticIndexRange = null
+                )
+            }
         }
-        if (asoc != null && asoc !in 1..100) {
-            return BatteryHealthAssessment(BatteryHealthGrade.UNDETERMINED, cycles, null)
-        }
+
+        val sourceMismatch = bsoh != null && asoc != null && isBsohValid && isAsocValid && abs(bsoh - asoc) >= 10
 
         var badReason: BatteryHealthBadReason? = null
         val grade = when {
-            asoc != null && asoc <= 55 && cycles >= 1200 -> {
+            healthH <= 55 && cycles >= 1200 -> {
                 badReason = BatteryHealthBadReason.END_OF_LIFE
                 BatteryHealthGrade.BAD
             }
-            cycles >= 1200 || (asoc != null && asoc <= 65) -> BatteryHealthGrade.WEAK
-            asoc != null && asoc in 66..79 && cycles in 30..500 -> {
+            cycles >= 1200 -> BatteryHealthGrade.WEAK
+            healthH <= 65 -> BatteryHealthGrade.WEAK
+            healthH in 66..79 && cycles in 30..500 -> {
                 badReason = BatteryHealthBadReason.EARLY_DEGRADATION
                 BatteryHealthGrade.BAD
             }
-            asoc != null && asoc in 66..79 && cycles in 501..1199 -> BatteryHealthGrade.NORMAL
-            asoc != null && asoc in 80..84 -> {
-                val badCycleLimit = when (asoc) {
-                    80 -> 500
-                    81 -> 467
-                    82 -> 434
-                    83 -> 400
-                    else -> 350
-                }
-                when {
-                    cycles < badCycleLimit -> {
-                        badReason = BatteryHealthBadReason.EARLY_DEGRADATION
-                        BatteryHealthGrade.BAD
-                    }
-                    cycles < 1200 -> BatteryHealthGrade.GOOD
-                    else -> BatteryHealthGrade.WEAK
-                }
+            healthH in 66..79 && cycles in 501..1199 -> BatteryHealthGrade.NORMAL
+            healthH in 80..84 && cycles in 30 until getT(healthH) -> {
+                badReason = BatteryHealthBadReason.EARLY_DEGRADATION
+                BatteryHealthGrade.BAD
             }
-            asoc != null && asoc in 85..100 && cycles in 30..1199 -> BatteryHealthGrade.GOOD
+            healthH in 80..84 && cycles in getT(healthH)..1199 -> BatteryHealthGrade.GOOD
+            healthH in 85..100 && cycles in 30..1199 -> BatteryHealthGrade.GOOD
             else -> BatteryHealthGrade.UNDETERMINED
         }
 
-        val indexRange = gradeScoreRange(grade)
-        val score = if (asoc != null) computeFormulaScore(grade, asoc, cycles) else null
-        return BatteryHealthAssessment(grade, cycles, indexRange, badReason, score)
+        val isCustomRule = (grade == BatteryHealthGrade.BAD && badReason == BatteryHealthBadReason.END_OF_LIFE)
+        val score = computeFormulaScore(healthH, cycles, grade, badReason)
+        val indexRange = gradeScoreRange(grade, badReason)
+
+        return BatteryHealthAssessment(
+            status = BatteryHealthStatus.OK,
+            grade = grade,
+            convertedCycles = cycles,
+            diagnosticIndexRange = indexRange,
+            badReason = badReason,
+            score = score,
+            healthValue = healthH,
+            healthSource = source,
+            isSourceVerified = isSourceVerified,
+            sourceMismatch = sourceMismatch,
+            isCustomRule = isCustomRule,
+            displayText = null
+        )
     }
 }

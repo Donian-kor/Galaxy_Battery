@@ -199,6 +199,7 @@ object BatteryParser {
         var asocSeen = false
         var asocRaw = ""
         var bsoh: Int? = null
+        var bsohValue: Int? = null
         var bsohRaw = ""
         var usage: Int? = null
         var usageRaw = ""
@@ -235,6 +236,7 @@ object BatteryParser {
                 if (t.contains("mSavedBatteryBsoh:")) {
                     bsohRaw = t.substringAfter("mSavedBatteryBsoh:").trim()
                     bsoh = extractValueOrNull(t, "mSavedBatteryBsoh:")
+                    bsohValue = extractSignedValueOrNull(t, "mSavedBatteryBsoh:")
                 }
                 if (t.contains("mSavedBatteryUsage:")) {
                     usageRaw = t.substringAfter("mSavedBatteryUsage:").trim()
@@ -318,6 +320,7 @@ object BatteryParser {
             asocValue = asocValue,
             bsohRaw = bsohRaw,
             bsohPercent = bsoh?.takeIf { it in 0..100 },
+            bsohValue = bsohValue,
             usageRaw = usageRaw,
             batteryUsageValue = batteryUsageValue,
             llbType = llbType,

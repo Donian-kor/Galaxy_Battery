@@ -22,16 +22,65 @@ object BatteryReport {
         fun capacity(number: Int?): String? =
             number?.let { String.format(Locale.US, "%,d mAh", it) }
 
+        val assessment = BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue, info.bsohValue)
+
+        val scoreStr = if (assessment.status == BatteryHealthStatus.OK && assessment.score != null) {
+            "${assessment.score}%"
+        } else {
+            when (assessment.status) {
+                BatteryHealthStatus.INSUFFICIENT_CYCLES -> context.getString(R.string.status_insufficient_cycles)
+                BatteryHealthStatus.HEALTH_UNAVAILABLE -> context.getString(R.string.status_health_unavailable)
+                BatteryHealthStatus.INVALID_DATA -> context.getString(R.string.status_invalid_data)
+                BatteryHealthStatus.OK -> none
+            }
+        }
+
+        val gradeStr = when (assessment.grade) {
+            BatteryHealthGrade.GOOD -> context.getString(R.string.assessment_grade_good)
+            BatteryHealthGrade.NORMAL -> context.getString(R.string.assessment_grade_normal)
+            BatteryHealthGrade.WEAK -> context.getString(R.string.assessment_grade_weak)
+            BatteryHealthGrade.BAD -> when (assessment.badReason) {
+                BatteryHealthBadReason.END_OF_LIFE -> context.getString(R.string.assessment_grade_bad_end_of_life)
+                BatteryHealthBadReason.EARLY_DEGRADATION -> context.getString(R.string.assessment_grade_bad_early_degradation)
+                null -> context.getString(R.string.assessment_grade_bad)
+            }
+            BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE -> context.getString(R.string.assessment_grade_diagnostic_unavailable)
+            BatteryHealthGrade.CALCULATION_UNAVAILABLE -> context.getString(R.string.assessment_grade_calculation_unavailable)
+            BatteryHealthGrade.UNDETERMINED -> context.getString(R.string.assessment_grade_undetermined)
+        }
+
+        val sourceStr = when (assessment.healthSource) {
+            HealthSource.BSOH -> context.getString(R.string.health_source_bsoh_basis)
+            HealthSource.ASOC -> context.getString(R.string.health_source_asoc_basis)
+            null -> none
+        }
+
         val lines = mutableListOf<String>()
         lines += context.getString(R.string.report_subject)
         lines += "────────────────────────"
         lines += context.getString(
-            R.string.report_health,
-            value(info.healthPercent?.let { "$it%" })
+            R.string.report_score,
+            value(scoreStr)
+        )
+        lines += context.getString(
+            R.string.report_grade,
+            value(gradeStr)
+        )
+        lines += context.getString(
+            R.string.report_health_val,
+            value(assessment.healthValue?.let { "$it%" })
         )
         lines += context.getString(
             R.string.report_health_source,
-            value(info.healthSource.uppercase(Locale.US))
+            value(sourceStr)
+        )
+        lines += context.getString(
+            R.string.report_bsoh_raw,
+            value(info.bsohRaw)
+        )
+        lines += context.getString(
+            R.string.report_asoc_raw,
+            value(info.asocRaw)
         )
         lines += context.getString(R.string.report_cycles, value(grouped(info.cycleCount)))
         lines += context.getString(

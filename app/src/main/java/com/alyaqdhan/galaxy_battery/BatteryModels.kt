@@ -9,6 +9,7 @@ data class BatteryInfo(
     val asocValue: Int? = null,
     val bsohRaw: String = "",
     val bsohPercent: Int? = null,
+    val bsohValue: Int? = null,
     val usageRaw: String = "",
     val batteryUsageValue: Int? = null,
     val llbType: String = "",

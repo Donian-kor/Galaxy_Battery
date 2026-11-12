@@ -20,7 +20,7 @@ class BatteryHealthParsingTest {
         assertEquals(970, info.cycleCount)
         assertEquals(
             BatteryHealthGrade.NORMAL,
-            BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue).grade
+            BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue, info.bsohValue).grade
         )
     }
 
@@ -34,7 +34,7 @@ class BatteryHealthParsingTest {
         assertEquals(1699, info.cycleCount)
         assertEquals(
             BatteryHealthGrade.WEAK,
-            BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue).grade
+            BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue, info.bsohValue).grade
         )
     }
 
@@ -62,16 +62,100 @@ class BatteryHealthParsingTest {
 
 class BatteryHealthClassifierTest {
 
-    private fun assertGrade(asoc: Int?, cycles: Int, expected: BatteryHealthGrade) {
-        val assessment = BatteryHealthClassifier.assess(asoc, cycles * 100)
+    private fun assertGrade(asoc: Int?, cycles: Int, expected: BatteryHealthGrade, bsoh: Int? = null) {
+        val assessment = BatteryHealthClassifier.assess(asoc, cycles * 100, bsoh)
         assertEquals(expected, assessment.grade)
         assertEquals(cycles, assessment.convertedCycles)
     }
 
-    private fun assertScore(asoc: Int, cycles: Int, expectedGrade: BatteryHealthGrade, expectedScore: Int) {
-        val assessment = BatteryHealthClassifier.assess(asoc, cycles * 100)
+    private fun assertScore(asoc: Int, cycles: Int, expectedGrade: BatteryHealthGrade, expectedScore: Int, bsoh: Int? = null) {
+        val assessment = BatteryHealthClassifier.assess(asoc, cycles * 100, bsoh)
         assertEquals(expectedGrade, assessment.grade)
         assertEquals(expectedScore, assessment.score)
+    }
+
+    @Test
+    fun `rule 7 verification table tests`() {
+        // 1. 없음, 73, 970 -> 보통, 76
+        val t1 = BatteryHealthClassifier.assess(asoc = 73, batteryUsage = 97000, bsoh = null)
+        assertEquals(BatteryHealthGrade.NORMAL, t1.grade)
+        assertEquals(76, t1.score)
+
+        // 2. 없음, 84, 1699 -> 주의, 64
+        val t2 = BatteryHealthClassifier.assess(asoc = 84, batteryUsage = 169900, bsoh = null)
+        assertEquals(BatteryHealthGrade.WEAK, t2.grade)
+        assertEquals(64, t2.score)
+
+        // 3. 없음, 94, 530 -> 정상, 94
+        val t3 = BatteryHealthClassifier.assess(asoc = 94, batteryUsage = 53000, bsoh = null)
+        assertEquals(BatteryHealthGrade.GOOD, t3.grade)
+        assertEquals(94, t3.score)
+
+        // 4. 94, 100, 429 -> 정상, 95 (BSOH 사용)
+        val t4 = BatteryHealthClassifier.assess(asoc = 100, batteryUsage = 42900, bsoh = 94)
+        assertEquals(BatteryHealthGrade.GOOD, t4.grade)
+        assertEquals(95, t4.score)
+        assertEquals(HealthSource.BSOH, t4.healthSource)
+        assertEquals(false, t4.isSourceVerified)
+
+        // 5. 95, 99, 344 -> 정상, 96 (BSOH 사용)
+        val t5 = BatteryHealthClassifier.assess(asoc = 99, batteryUsage = 34400, bsoh = 95)
+        assertEquals(BatteryHealthGrade.GOOD, t5.grade)
+        assertEquals(96, t5.score)
+        assertEquals(HealthSource.BSOH, t5.healthSource)
+
+        // 6. 100, 97, 1107 -> 정상, 88 (BSOH 사용)
+        val t6 = BatteryHealthClassifier.assess(asoc = 97, batteryUsage = 110700, bsoh = 100)
+        assertEquals(BatteryHealthGrade.GOOD, t6.grade)
+        assertEquals(88, t6.score)
+        assertEquals(HealthSource.BSOH, t6.healthSource)
+
+        // 7. 없음, 90, 300 -> 정상, 95
+        val t7 = BatteryHealthClassifier.assess(asoc = 90, batteryUsage = 30000, bsoh = null)
+        assertEquals(BatteryHealthGrade.GOOD, t7.grade)
+        assertEquals(95, t7.score)
+
+        // 8. 없음, 73, 200 -> 나쁨(조기 열화), 30
+        val t8 = BatteryHealthClassifier.assess(asoc = 73, batteryUsage = 20000, bsoh = null)
+        assertEquals(BatteryHealthGrade.BAD, t8.grade)
+        assertEquals(BatteryHealthBadReason.EARLY_DEGRADATION, t8.badReason)
+        assertEquals(30, t8.score)
+
+        // 9. 없음, 50, 2000 -> 나쁨(수명 종료), 13, isCustomRule=true
+        val t9 = BatteryHealthClassifier.assess(asoc = 50, batteryUsage = 200000, bsoh = null)
+        assertEquals(BatteryHealthGrade.BAD, t9.grade)
+        assertEquals(BatteryHealthBadReason.END_OF_LIFE, t9.badReason)
+        assertEquals(13, t9.score)
+        assertEquals(true, t9.isCustomRule)
+
+        // 10. 0, 99, 344 -> ASOC 사용, 정상, 97
+        val t10 = BatteryHealthClassifier.assess(asoc = 99, batteryUsage = 34400, bsoh = 0)
+        assertEquals(HealthSource.ASOC, t10.healthSource)
+        assertEquals(BatteryHealthGrade.GOOD, t10.grade)
+        assertEquals(97, t10.score)
+        assertEquals(true, t10.isSourceVerified)
+
+        // 11. -1, 73, 970 -> ASOC 사용, 보통, 76
+        val t11 = BatteryHealthClassifier.assess(asoc = 73, batteryUsage = 97000, bsoh = -1)
+        assertEquals(HealthSource.ASOC, t11.healthSource)
+        assertEquals(BatteryHealthGrade.NORMAL, t11.grade)
+        assertEquals(76, t11.score)
+
+        // 12. 85, 97, 300 -> 정상, 92, sourceMismatch=true
+        val t12 = BatteryHealthClassifier.assess(asoc = 97, batteryUsage = 30000, bsoh = 85)
+        assertEquals(BatteryHealthGrade.GOOD, t12.grade)
+        assertEquals(92, t12.score)
+        assertEquals(true, t12.sourceMismatch)
+
+        // 13. 없음, -1, 500 -> 산정 불가
+        val t13 = BatteryHealthClassifier.assess(asoc = -1, batteryUsage = 50000, bsoh = null)
+        assertEquals(BatteryHealthStatus.HEALTH_UNAVAILABLE, t13.status)
+        assertEquals(BatteryHealthGrade.CALCULATION_UNAVAILABLE, t13.grade)
+
+        // 14. 없음, 73, 29 -> 진단 불가(사이클 부족)
+        val t14 = BatteryHealthClassifier.assess(asoc = 73, batteryUsage = 2900, bsoh = null)
+        assertEquals(BatteryHealthStatus.INSUFFICIENT_CYCLES, t14.status)
+        assertEquals(BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE, t14.grade)
     }
 
     @Test
@@ -178,9 +262,9 @@ class BatteryHealthClassifierTest {
     @Test
     fun `missing asoc is only classified when the cycle rule determines it`() {
         assertGrade(null, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
-        assertGrade(null, 30, BatteryHealthGrade.UNDETERMINED)
-        assertGrade(null, 1199, BatteryHealthGrade.UNDETERMINED)
-        assertGrade(null, 1200, BatteryHealthGrade.WEAK)
+        assertGrade(null, 30, BatteryHealthGrade.CALCULATION_UNAVAILABLE)
+        assertGrade(null, 1199, BatteryHealthGrade.CALCULATION_UNAVAILABLE)
+        assertGrade(null, 1200, BatteryHealthGrade.CALCULATION_UNAVAILABLE)
     }
 
     @Test
@@ -211,7 +295,7 @@ class BatteryHealthClassifierTest {
 
     @Test
     fun `final grade maps to its diagnostic index range`() {
-        assertEquals(0..49, BatteryHealthClassifier.assess(79, 3000).diagnosticIndexRange)
+        assertEquals(20..49, BatteryHealthClassifier.assess(79, 3000).diagnosticIndexRange)
         assertEquals(50..69, BatteryHealthClassifier.assess(84, 120000).diagnosticIndexRange)
         assertEquals(70..84, BatteryHealthClassifier.assess(73, 97034).diagnosticIndexRange)
         assertEquals(85..100, BatteryHealthClassifier.assess(85, 3000).diagnosticIndexRange)

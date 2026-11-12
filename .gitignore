@@ -11,3 +11,11 @@
 .cxx
 local.properties
 /app/release/
+
+# Signing keys and keystore files (do not commit)
+*.jks
+*.keystore
+*release.jks
+*release.keystore
+signing-config*
+signing.properties

@@ -99,9 +99,9 @@ fun HealthGaugeCard(
     amplitude: Float,
     gaugeReplayKey: Int = 0
 ) {
-    val assessment = BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue)
+    val assessment = BatteryHealthClassifier.assess(info.asocValue, info.batteryUsageValue, info.bsohValue)
     val diagnosticScore = assessment.score
-    val isUnsupported = diagnosticScore == null
+    val isUnsupported = assessment.status != BatteryHealthStatus.OK
     val targetPct = diagnosticScore?.toFloat() ?: 0f
 
     LaunchedEffect(isLoadingDetail, targetPct, gaugeReplayKey) {
@@ -124,15 +124,26 @@ fun HealthGaugeCard(
     val gaugeColor by animateColorAsState(
         targetValue = when {
             isLoadingDetail -> gaugeBlue()
-            assessment.grade == BatteryHealthGrade.GOOD -> gaugeGreen()
-            assessment.grade == BatteryHealthGrade.NORMAL -> gaugeYellow()
-            assessment.grade == BatteryHealthGrade.WEAK -> gaugeOrange()
-            assessment.grade == BatteryHealthGrade.BAD -> gaugeRed()
+            assessment.status == BatteryHealthStatus.OK -> when (assessment.grade) {
+                BatteryHealthGrade.GOOD -> gaugeGreen()
+                BatteryHealthGrade.NORMAL -> gaugeYellow()
+                BatteryHealthGrade.WEAK -> gaugeOrange()
+                BatteryHealthGrade.BAD -> gaugeRed()
+                else -> gaugeGray()
+            }
             else -> gaugeGray()
         },
         animationSpec = tween(300),
         label = "gauge_color"
     )
+
+    val statusText = when (assessment.status) {
+        BatteryHealthStatus.INSUFFICIENT_CYCLES -> stringResource(R.string.status_insufficient_cycles)
+        BatteryHealthStatus.HEALTH_UNAVAILABLE -> stringResource(R.string.status_health_unavailable)
+        BatteryHealthStatus.INVALID_DATA -> stringResource(R.string.status_invalid_data)
+        BatteryHealthStatus.OK -> null
+    }
+
     val statusLabel = stringResource(
         when {
             isLoadingDetail -> R.string.status_loading
@@ -144,55 +155,75 @@ fun HealthGaugeCard(
     val inset  = appColors().inset
 
     DashboardCard(glow = true) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val gaugeSize = minOf(208.dp, maxWidth)
-        HealthGauge(
-            modifier = Modifier.width(gaugeSize).align(Alignment.TopCenter),
-            gaugeSize = gaugeSize,
-            animPct = animPct,
-            diagnosticScore = diagnosticScore,
-            hasValue = !isUnsupported,
-            isLoadingDetail = isLoadingDetail,
-            amplitude = amplitude,
-            statusLabel = statusLabel,
-            gaugeColor = gaugeColor,
-            inset = inset,
-            border = border
-        )
-    }
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val gaugeSize = minOf(208.dp, maxWidth)
+            HealthGauge(
+                modifier = Modifier.width(gaugeSize).align(Alignment.TopCenter),
+                gaugeSize = gaugeSize,
+                animPct = animPct,
+                diagnosticScore = diagnosticScore,
+                statusText = statusText,
+                hasValue = !isUnsupported,
+                isLoadingDetail = isLoadingDetail,
+                amplitude = amplitude,
+                statusLabel = statusLabel,
+                gaugeColor = gaugeColor,
+                inset = inset,
+                border = border
+            )
+        }
         Spacer(Modifier.height(12.dp))
-        BatteryAssessmentDetails(assessment)
-
+        BatteryAssessmentDetails(assessment, info.bsohValue, info.asocValue)
     }
 }
 
 @Composable
 private fun BatteryAssessmentDetails(
-    assessment: BatteryHealthAssessment
+    assessment: BatteryHealthAssessment,
+    bsohVal: Int? = null,
+    asocVal: Int? = null
 ) {
     val gradeText = stringResource(assessment.gradeLabelResource())
-    val gradeColor = when (assessment.grade) {
-        BatteryHealthGrade.GOOD -> gaugeGreen()
-        BatteryHealthGrade.NORMAL -> gaugeYellow()
-        BatteryHealthGrade.WEAK -> gaugeOrange()
-        BatteryHealthGrade.BAD -> gaugeRed()
-        BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE,
-        BatteryHealthGrade.CALCULATION_UNAVAILABLE,
-        BatteryHealthGrade.UNDETERMINED -> gaugeGray()
+    val gradeColor = when (assessment.status) {
+        BatteryHealthStatus.OK -> when (assessment.grade) {
+            BatteryHealthGrade.GOOD -> gaugeGreen()
+            BatteryHealthGrade.NORMAL -> gaugeYellow()
+            BatteryHealthGrade.WEAK -> gaugeOrange()
+            BatteryHealthGrade.BAD -> gaugeRed()
+            else -> gaugeGray()
+        }
+        else -> gaugeGray()
     }
+
+    val scoreAndGrade = if (assessment.status == BatteryHealthStatus.OK && assessment.score != null) {
+        stringResource(R.string.score_with_grade, assessment.score, gradeText)
+    } else {
+        gradeText
+    }
+
+    val sourceBasisText = when (assessment.healthSource) {
+        HealthSource.BSOH -> stringResource(R.string.health_source_bsoh_basis)
+        HealthSource.ASOC -> stringResource(R.string.health_source_asoc_basis)
+        null -> ""
+    }
+
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = appColors().inset,
         border = BorderStroke(1.dp, cardBorderColor())
     ) {
-        Column(Modifier.fillMaxWidth().padding(12.dp)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        stringResource(R.string.assessment_title),
+                        stringResource(R.string.score_title),
                         color = textPrimary(),
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                     )
@@ -202,12 +233,76 @@ private fun BatteryAssessmentDetails(
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
-                Text(
-                    gradeText,
-                    color = gradeColor,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        scoreAndGrade,
+                        color = gradeColor,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                    if (sourceBasisText.isNotEmpty()) {
+                        Text(
+                            sourceBasisText,
+                            color = textSecondary(),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium)
+                        )
+                    }
+                }
             }
+
+            val isUnverified = !assessment.isSourceVerified && assessment.status == BatteryHealthStatus.OK
+            val isCustom = assessment.isCustomRule
+            val isMismatch = assessment.sourceMismatch && bsohVal != null && asocVal != null
+
+            if (isUnverified || isCustom || isMismatch) {
+                Spacer(Modifier.height(8.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (isUnverified) {
+                        NoticeBadge(
+                            text = stringResource(R.string.notice_unverified_source),
+                            color = gaugeYellow()
+                        )
+                    }
+                    if (isCustom) {
+                        NoticeBadge(
+                            text = stringResource(R.string.notice_custom_rule),
+                            color = gaugeOrange()
+                        )
+                    }
+                    if (isMismatch && bsohVal != null && asocVal != null) {
+                        NoticeBadge(
+                            text = stringResource(R.string.notice_source_mismatch, bsohVal, asocVal),
+                            color = gaugeRed()
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoticeBadge(text: String, color: Color) {
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = color.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.35f))
+    ) {
+        Row(
+            Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.size(5.dp).background(color, CircleShape))
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text,
+                color = color,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            )
         }
     }
 }
@@ -218,6 +313,7 @@ private fun HealthGauge(
     gaugeSize: Dp,
     animPct: Float,
     diagnosticScore: Int?,
+    statusText: String?,
     hasValue: Boolean,
     isLoadingDetail: Boolean,
     amplitude: Float,
@@ -232,6 +328,7 @@ private fun HealthGauge(
             modifier = Modifier.size(gaugeSize),
             animPct = animPct,
             diagnosticScore = diagnosticScore,
+            statusText = statusText,
             hasValue = hasValue,
             isLoadingDetail = isLoadingDetail,
             amplitude = amplitude,
@@ -249,6 +346,7 @@ private fun HealthGaugeDial(
     modifier: Modifier,
     animPct: Float,
     diagnosticScore: Int?,
+    statusText: String?,
     hasValue: Boolean,
     isLoadingDetail: Boolean,
     amplitude: Float,
@@ -268,12 +366,33 @@ private fun HealthGaugeDial(
             modifier = Modifier.fillMaxSize()
         )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (hasValue || isLoadingDetail) {
+            if (isLoadingDetail) {
                 val valueFontSize = (dialWidth.value * 0.22f).coerceIn(22f, 42f).sp
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        if (isLoadingDetail) "—"
-                        else diagnosticScore?.toString() ?: "—",
+                        "—",
+                        color = textPrimary(),
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            fontFamily = TelemetryFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = valueFontSize
+                        )
+                    )
+                    Text(
+                        stringResource(R.string.gauge_percent_sign),
+                        color = gaugeColor,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontFamily = TelemetryFontFamily,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = (valueFontSize.value * 0.65f).sp
+                        )
+                    )
+                }
+            } else if (hasValue && diagnosticScore != null) {
+                val valueFontSize = (dialWidth.value * 0.22f).coerceIn(22f, 42f).sp
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        diagnosticScore.toString(),
                         color = textPrimary(),
                         style = MaterialTheme.typography.displaySmall.copy(
                             fontFamily = TelemetryFontFamily,
@@ -293,10 +412,12 @@ private fun HealthGaugeDial(
                 }
             } else {
                 Text(
-                    emptyLabel ?: "—",
+                    statusText ?: emptyLabel ?: "—",
                     color = textSecondary(),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = 1
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    maxLines = 2
                 )
             }
 

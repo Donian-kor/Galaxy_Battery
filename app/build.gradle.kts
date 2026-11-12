@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -15,8 +17,24 @@ android {
         minSdk = 26
         targetSdk = 37
         // major * 10000 + minor * 100 + patch, so it always goes up with versionName
-        versionCode = 20110
-        versionName = "2.1.1"
+        versionCode = 20200
+        versionName = "2.2"
+    }
+
+    signingConfigs {
+        create("release") {
+            val signingProps = Properties()
+            val signingFile = file("$rootDir/signing.properties")
+            if (signingFile.exists()) {
+                signingFile.inputStream().use { inputStream ->
+                    signingProps.load(inputStream)
+                }
+            }
+            storeFile = file("$rootDir/galaxy_battery-release.jks")
+            storePassword = signingProps.getProperty("galaxy.battery.release.storePassword", "")
+            keyAlias = signingProps.getProperty("galaxy.battery.release.keyAlias", "galaxy-battery-key")
+            keyPassword = signingProps.getProperty("galaxy.battery.release.keyPassword", "")
+        }
     }
 
     buildTypes {
@@ -24,6 +42,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
