@@ -90,17 +90,11 @@
     </plurals>
 
     <!-- Dashboard header and battery meta ribbon -->
-    <!-- LLB CAL: first calibration/use. Resets to replacement day on official service. -->
-    <string name="battery_installed_on">Battery installed: %1$s</string>
-    <!-- LLB MAN: battery manufacture date -->
+    <!-- LLB MAN: battery manufacture date. No log field carries the install date. -->
     <string name="battery_manufactured_on">Battery made: %1$s</string>
     <!-- ril.actdate: device first call date -->
     <string name="device_activated_on">First call: %1$s</string>
-    <string name="battery_install_unknown">Battery date info unavailable</string>
-    <plurals name="battery_months_used">
-        <item quantity="one">%1$d month elapsed</item>
-        <item quantity="other">%1$d months elapsed</item>
-    </plurals>
+    <string name="battery_date_unknown">Battery date info unavailable</string>
     <string name="log_moment_today">Today %1$s</string>
     <string name="log_moment_yesterday">Yesterday %1$s</string>
     <string name="log_moment_date">%1$s %2$s</string>
@@ -111,8 +105,7 @@
     <string name="gauge_asoc_label">ASOC</string>
     <string name="gauge_bsoh_label">BSOH</string>
     <string name="gauge_bsoh_missing">None</string>
-    <string name="score_title">Comprehensive Diagnosis Score (In-house)</string>
-    <string name="score_with_grade">%1$d%% · %2$s</string>
+    <string name="score_title">Comprehensive Diagnosis Score</string>
     <string name="health_source_bsoh_basis">Based on BSOH</string>
     <string name="health_source_asoc_basis">Based on ASOC</string>
     <string name="notice_unverified_source">Unverified reference value</string>
@@ -177,7 +170,6 @@
     <string name="report_measured_capacity_estimated">Estimated Effective Capacity: %1$s</string>
     <string name="report_log_file">Log File: %1$s</string>
     <string name="report_log_time">Log Created: %1$s</string>
-    <string name="report_install_date">Battery Installed: %1$s</string>
     <string name="report_manufacture_date">Battery Manufactured: %1$s</string>
     <string name="report_first_use_date">Device First Used: %1$s</string>
     <string name="report_activation_date">First Call Date: %1$s</string>

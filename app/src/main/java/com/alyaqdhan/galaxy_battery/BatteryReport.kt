@@ -106,10 +106,6 @@ object BatteryReport {
             )
         )
         lines += context.getString(
-            R.string.report_install_date,
-            value(formatBatteryDate(info.calibratedDateMs, dateStyleKorean))
-        )
-        lines += context.getString(
             R.string.report_manufacture_date,
             value(formatBatteryDate(info.manufactureDateMs, dateStyleKorean))
         )

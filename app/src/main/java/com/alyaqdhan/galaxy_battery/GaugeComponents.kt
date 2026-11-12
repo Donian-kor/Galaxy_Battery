@@ -1,6 +1,5 @@
 package com.alyaqdhan.galaxy_battery
 import com.alyaqdhan.galaxy_battery.ui.theme.*
-import androidx.compose.ui.res.pluralStringResource
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
@@ -196,16 +195,12 @@ private fun BatteryAssessmentDetails(
         else -> gaugeGray()
     }
 
-    val scoreAndGrade = if (assessment.status == BatteryHealthStatus.OK && assessment.score != null) {
-        stringResource(R.string.score_with_grade, assessment.score, gradeText)
-    } else {
-        gradeText
-    }
-
-    val sourceBasisText = when (assessment.healthSource) {
-        HealthSource.BSOH -> stringResource(R.string.health_source_bsoh_basis)
-        HealthSource.ASOC -> stringResource(R.string.health_source_asoc_basis)
-        null -> ""
+    // 점수 숫자는 게이지 중앙에 이미 크고 보이므로 여기서는 등급만 적는다.
+    // BSOH가 유효하면 판정이 그 값을 쓰므로 기준도 BSOH로 표기한다.
+    val sourceBasisText = when {
+        bsohVal != null && bsohVal in 1..100 -> stringResource(R.string.health_source_bsoh_basis)
+        asocVal != null && asocVal in 1..100 -> stringResource(R.string.health_source_asoc_basis)
+        else -> ""
     }
 
     Surface(
@@ -236,7 +231,7 @@ private fun BatteryAssessmentDetails(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        scoreAndGrade,
+                        gradeText,
                         color = gradeColor,
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                     )
@@ -741,96 +736,53 @@ private fun MetricTile(
 /**
  * 배터리 날짜.
  *
- * `LLB CAL`이 배터리 사용 개월의 근거다. 공식 센터에서 배터리를 교체하고
- * 초기화하면 이 값이 교체 당일로 바뀐다. 값이 없으면(One UI 5.1+ 업데이트 기종)
- * 개월 수를 표시하지 않고 제조일만 보여준다.
+ * 배터리 날짜 정보.
  *
- * `battery FirstUseDate`는 기기(메인보드) 최초 사용일이라 배터리 날짜로 쓰지 않는다.
- * 개통일(`ril.actdate`)은 참고 정보로만 보조 줄에 덧붙인다.
+ * 배터리 장착일로 쓸 수 있는 값이 없다. `LLB CAL`은 조건부로만 장착일을 의미하고
+ * 최신 기종에서는 비어 있어, 사용자에게 단정적으로 보여줄 근거가 되지 못한다.
+ * 그래서 제조일(`LLB MAN`)과 최초 통화일(`ril.actdate`)만 보여준다.
  *
- * 폭이 좁으면 한 줄에 날짜와 배지가 겹치므로 3줄로 나눠 표시한다.
+ * `battery FirstUseDate`는 기기(메인보드) 최초 사용일이라 배터리 날짜가 아니다.
+ * 폭이 좁으면 한 줄에 겹치므로 두 줄로 나눠 표시한다.
  */
 @Composable
 private fun BatteryMetaSection(
     info: BatteryInfo,
     isLoading: Boolean
 ) {
-    val calibratedDate = batteryDateText(info.calibratedDateMs)
     val manufactureDate = batteryDateText(info.manufactureDateMs)
     val activationDate = batteryDateText(info.activationDateMs)
-    val monthsUsed = if (isLoading) null else monthsSince(info.calibratedDateMs)
 
     val primaryLabel = when {
         isLoading -> stringResource(R.string.log_pill_loading)
-        calibratedDate.isNotEmpty() -> stringResource(R.string.battery_installed_on, calibratedDate)
         manufactureDate.isNotEmpty() -> stringResource(R.string.battery_manufactured_on, manufactureDate)
-        else -> stringResource(R.string.battery_install_unknown)
+        else -> stringResource(R.string.battery_date_unknown)
     }
-    val monthsLabel = monthsUsed?.let {
-        pluralStringResource(R.plurals.battery_months_used, it, it)
-    }
-    // 기본 줄에 이미 쓰인 날짜는 보조 줄에서 건너뛴다.
-    // CAL이 없으면 기본 줄이 제조일로 대체되므로 제조일도 제외한다.
-    val primaryIsManufacture = calibratedDate.isEmpty() && manufactureDate.isNotEmpty()
-    val secondaryLabels = listOfNotNull(
-        manufactureDate.takeIf {
-            it.isNotEmpty() && !primaryIsManufacture && it != activationDate
-        }?.let { stringResource(R.string.battery_manufactured_on, it) },
-        activationDate.takeIf { it.isNotEmpty() && it != calibratedDate }
-            ?.let { stringResource(R.string.device_activated_on, it) }
-    )
+    // 제조일이 기본 줄에 없을 때만 최초 통화일을 보조 줄에 덧붙인다.
+    val secondaryLabel = activationDate
+        .takeIf { it.isNotEmpty() && it != manufactureDate }
+        ?.let { stringResource(R.string.device_activated_on, it) }
 
     val muted = textMuted()
-    val border = cardBorderColor()
     val inset = appColors().inset
 
-    BoxWithConstraints(
+    Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(inset.copy(alpha = 0.6f))
-            .border(1.dp, border, RoundedCornerShape(10.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .border(1.dp, cardBorderColor(), RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        // 좁은 화면은 날짜·배지·보조 정보를 각각 한 줄씩 쓴다.
-        // 380dp 기준: 갤럭시 A·M 시리즈와 S22/S23(360dp)에서 겹친다.
-        val stacked = maxWidth < 380.dp
-
-        Row(verticalAlignment = Alignment.Top) {
-            BatteryDateIcon()
-            Spacer(Modifier.width(8.dp))
-            Column(
-                Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                if (stacked) {
-                    BatteryDateLabel(primaryLabel, muted, Modifier.fillMaxWidth())
-                    monthsLabel?.let {
-                        BatteryMonthsBadge(it, border)
-                    }
-                    secondaryLabels.forEach { label ->
-                        BatterySecondaryLabel(label, muted)
-                    }
-                } else {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        BatteryDateLabel(
-                            primaryLabel,
-                            muted,
-                            Modifier.weight(1f, fill = false)
-                        )
-                        monthsLabel?.let {
-                            Spacer(Modifier.width(8.dp))
-                            BatteryMonthsBadge(it, border)
-                        }
-                    }
-                    secondaryLabels.takeIf { it.isNotEmpty() }?.let { labels ->
-                        BatterySecondaryLabel(labels.joinToString("  ·  "), muted)
-                    }
-                }
-            }
+        BatteryDateIcon()
+        Spacer(Modifier.width(8.dp))
+        Column(
+            Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            BatteryDateLabel(primaryLabel, muted, Modifier.fillMaxWidth())
+            secondaryLabel?.let { BatterySecondaryLabel(it, muted) }
         }
     }
 }
@@ -866,26 +818,6 @@ private fun BatteryDateLabel(text: String, color: Color, modifier: Modifier) {
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
     )
-}
-
-@Composable
-private fun BatteryMonthsBadge(text: String, border: Color) {
-    Surface(
-        shape = RoundedCornerShape(4.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        border = BorderStroke(1.dp, border.copy(alpha = 0.4f))
-    ) {
-        Text(
-            text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium
-            ),
-            maxLines = 1
-        )
-    }
 }
 
 // ── Analysis summary card ─────────────────────────────────────────────────────
