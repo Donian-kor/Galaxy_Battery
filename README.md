@@ -7,8 +7,8 @@
 
 <table>
   <tr>
-    <td align="center"><img width="450" alt="폴드3" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold3.png" /></td>
-    <td align="center"><img width="250" alt="노트10+" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10plus.png" /></td>
+    <td align="center"><img width="450" alt="폴드3" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold3.png?v=2.2.1" /></td>
+    <td align="center"><img width="250" alt="노트10+" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10plus.png?v=2.2.1" /></td>
   </tr>
   <tr>
     <td align="center"><b>폴드3 (Galaxy Z Fold3)</b></td>
