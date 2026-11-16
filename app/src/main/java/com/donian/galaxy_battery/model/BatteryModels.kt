@@ -1,4 +1,4 @@
-package com.donian.galaxy_battery
+package com.donian.galaxy_battery.model
 
 data class BatteryInfo(
     val healthPercent: Int?,

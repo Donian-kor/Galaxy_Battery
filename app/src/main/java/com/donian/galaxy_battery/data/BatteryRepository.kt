@@ -5,10 +5,8 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
-import com.donian.galaxy_battery.BatteryCache
-import com.donian.galaxy_battery.BatteryInfo
-import com.donian.galaxy_battery.BatteryParser
-import com.donian.galaxy_battery.DocEntry
+import com.donian.galaxy_battery.data.parser.BatteryParser
+import com.donian.galaxy_battery.model.*
 
 /**
  * SAF/SharedPreferences 및 배터리 로그 데이터 접근을 총괄하는 리포지토리.

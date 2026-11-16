@@ -1,5 +1,7 @@
 package com.donian.galaxy_battery
 
+import com.donian.galaxy_battery.data.parser.BatteryParser
+import com.donian.galaxy_battery.model.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

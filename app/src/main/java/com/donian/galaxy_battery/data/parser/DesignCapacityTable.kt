@@ -1,4 +1,4 @@
-package com.donian.galaxy_battery.parser
+package com.donian.galaxy_battery.data.parser
 
 import java.util.Locale
 

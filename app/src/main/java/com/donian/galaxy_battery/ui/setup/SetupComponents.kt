@@ -1,4 +1,4 @@
-package com.donian.galaxy_battery
+package com.donian.galaxy_battery.ui.setup
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
@@ -42,6 +42,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.donian.galaxy_battery.R
+import com.donian.galaxy_battery.ui.common.MatchedIcon
 import com.donian.galaxy_battery.ui.theme.accentGreenEffective
 import com.donian.galaxy_battery.ui.theme.cardBorderColor
 import com.donian.galaxy_battery.ui.theme.cardColor

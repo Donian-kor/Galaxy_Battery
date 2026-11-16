@@ -5,6 +5,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.donian.galaxy_battery.data.parser.*
+import com.donian.galaxy_battery.model.*
 import java.text.SimpleDateFormat
 import java.util.Locale
 

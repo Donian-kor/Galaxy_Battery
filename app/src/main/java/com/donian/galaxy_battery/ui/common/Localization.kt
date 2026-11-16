@@ -1,10 +1,11 @@
-package com.donian.galaxy_battery
+package com.donian.galaxy_battery.ui.common
 
 import androidx.annotation.PluralsRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import com.donian.galaxy_battery.R
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date

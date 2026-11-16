@@ -1,4 +1,4 @@
-package com.donian.galaxy_battery
+package com.donian.galaxy_battery.ui.common
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Canvas

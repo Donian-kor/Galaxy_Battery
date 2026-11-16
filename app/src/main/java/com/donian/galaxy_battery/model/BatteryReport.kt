@@ -1,6 +1,8 @@
-package com.donian.galaxy_battery
+package com.donian.galaxy_battery.model
 
 import android.content.Context
+import com.donian.galaxy_battery.R
+import com.donian.galaxy_battery.ui.common.formatBatteryDate
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

@@ -2,6 +2,7 @@ package com.donian.galaxy_battery
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
+import com.donian.galaxy_battery.ui.theme.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

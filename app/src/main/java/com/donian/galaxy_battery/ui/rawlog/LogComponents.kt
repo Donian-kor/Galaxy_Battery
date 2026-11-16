@@ -1,4 +1,4 @@
-package com.donian.galaxy_battery
+package com.donian.galaxy_battery.ui.rawlog
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString

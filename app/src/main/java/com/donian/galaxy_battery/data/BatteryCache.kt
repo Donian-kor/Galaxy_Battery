@@ -1,7 +1,8 @@
-package com.donian.galaxy_battery
+package com.donian.galaxy_battery.data
 
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.donian.galaxy_battery.model.*
 
 /**
  * 마지막 분석 결과를 SharedPreferences에 보관한다.

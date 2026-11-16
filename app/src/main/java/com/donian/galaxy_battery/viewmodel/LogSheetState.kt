@@ -1,6 +1,6 @@
 package com.donian.galaxy_battery.viewmodel
 
-import com.donian.galaxy_battery.DocEntry
+import com.donian.galaxy_battery.model.*
 
 /**
  * Snapshot of the log-sheet state owned by [com.donian.galaxy_battery.AppViewModel].

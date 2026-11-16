@@ -1,7 +1,6 @@
 package com.donian.galaxy_battery.viewmodel
 
-import com.donian.galaxy_battery.BatteryInfo
-import com.donian.galaxy_battery.ErrorDialog
+import com.donian.galaxy_battery.model.*
 
 /**
  * Snapshot of battery/scan state owned by [com.donian.galaxy_battery.AppViewModel].

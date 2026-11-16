@@ -1,8 +1,6 @@
-package com.donian.galaxy_battery
+package com.donian.galaxy_battery.data.parser
 
-import com.donian.galaxy_battery.parser.DesignCapacityTable
-import com.donian.galaxy_battery.parser.LogFileNameParser
-import com.donian.galaxy_battery.parser.NumberScanner
+import com.donian.galaxy_battery.model.*
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader

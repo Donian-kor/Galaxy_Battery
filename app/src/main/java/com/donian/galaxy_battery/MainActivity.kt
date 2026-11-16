@@ -5,7 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.WindowCompat
-import com.donian.galaxy_battery.ui.main.BatteryDashboard
+import com.donian.galaxy_battery.model.BatteryReport
+import com.donian.galaxy_battery.ui.dashboard.BatteryDashboard
 import com.donian.galaxy_battery.ui.theme.GalaxyBatteryTheme
 
 class MainActivity : ComponentActivity() {

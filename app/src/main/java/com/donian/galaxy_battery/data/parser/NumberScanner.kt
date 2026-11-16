@@ -1,4 +1,4 @@
-package com.donian.galaxy_battery.parser
+package com.donian.galaxy_battery.data.parser
 
 /**
  * 덤프 로그 줄에서 정규식 없이 정수를 뽑는 스캐너.

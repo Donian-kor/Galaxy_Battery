@@ -1,4 +1,4 @@
-package com.donian.galaxy_battery
+package com.donian.galaxy_battery.ui.common
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.donian.galaxy_battery.R
+import com.donian.galaxy_battery.model.ErrorDialog
 import com.donian.galaxy_battery.ui.theme.accentGreenEffective
 import com.donian.galaxy_battery.ui.theme.textPrimary
 import com.donian.galaxy_battery.ui.theme.textSecondary

@@ -1,5 +1,6 @@
 package com.donian.galaxy_battery
 
+import com.donian.galaxy_battery.ui.common.scrollbarFraction
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

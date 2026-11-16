@@ -1,4 +1,4 @@
-package com.donian.galaxy_battery
+package com.donian.galaxy_battery.ui.common
 
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material3.ExperimentalMaterial3Api

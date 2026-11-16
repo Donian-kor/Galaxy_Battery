@@ -32,6 +32,9 @@ import androidx.core.view.WindowCompat
 import com.donian.galaxy_battery.*
 import com.donian.galaxy_battery.R
 import com.donian.galaxy_battery.AppViewModel
+import com.donian.galaxy_battery.ui.common.ErrorDialogHost
+import com.donian.galaxy_battery.ui.common.MatchedIcon
+import com.donian.galaxy_battery.ui.common.ScreenContentTop
 
 // ── SetupScreen composable ────────────────────────────────────────────────────
 

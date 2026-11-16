@@ -3,6 +3,7 @@ package com.donian.galaxy_battery
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import com.donian.galaxy_battery.ui.common.*
 import java.text.SimpleDateFormat
 import java.util.Locale
 
