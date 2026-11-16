@@ -3,19 +3,6 @@
 삼성 덤프스테이트 배터리 로그(`dumpState_*.log`)를 읽어 배터리 건강도(SOH),
 충전 사이클과 용량을 보여주는 오프라인 진단 앱입니다.
 
-## 스크린샷
-
-<table>
-  <tr>
-    <td align="center"><img width="450" alt="폴드3" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_fold3_v221.png" /></td>
-    <td align="center"><img width="250" alt="노트10+" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_note10plus_v221.png" /></td>
-  </tr>
-  <tr>
-    <td align="center"><b>폴드3 (Galaxy Z Fold3)</b></td>
-    <td align="center"><b>노트10+ (Galaxy Note10+)</b></td>
-  </tr>
-</table>
-
 ## 화면 테마
 
 설정 화면 하단에서 다크/라이트를 직접 고릅니다. 고른 값은 저장되어 다음 실행에도 유지되고,
