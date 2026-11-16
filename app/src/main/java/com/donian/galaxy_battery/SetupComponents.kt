@@ -2,7 +2,6 @@ package com.donian.galaxy_battery
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -49,6 +48,11 @@ import com.donian.galaxy_battery.ui.theme.cardColor
 import com.donian.galaxy_battery.ui.theme.textPrimary
 import com.donian.galaxy_battery.ui.theme.textSecondary
 
+/**
+ * Setup 머리글에 붙는 앱 마크.
+ *
+ * 방향(좌우 반전)이 없는 가로형 이미지라 RTL 에서도 그대로 둔다.
+ */
 @Composable
 fun AppLogo(modifier: Modifier = Modifier) {
     Image(
@@ -62,12 +66,13 @@ fun AppLogo(modifier: Modifier = Modifier) {
 @Composable
 fun SetupCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     ElevatedCard(
-        modifier  = modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(24.dp),
         colors    = CardDefaults.elevatedCardColors(containerColor = cardColor()),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
-        content   = content
-    )
+        modifier  = modifier.fillMaxWidth()
+    ) {
+        content()
+    }
 }
 
 data class SetupStep(
@@ -86,51 +91,61 @@ fun SetupStepRow(number: Int, step: SetupStep, isLast: Boolean, isDone: Boolean 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
+            .height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.Top
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            StepBadge(number = number, isDone = isDone)
-            if (!isLast) {
-                StepConnector()
-            }
-        }
+        StepMarker(number = number, isDone = isDone, connectsToNext = !isLast)
 
         Spacer(Modifier.width(14.dp))
 
-        StepContentBody(
+        StepBody(
             step = step,
-            isLast = isLast,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 5.dp, bottom = if (isLast) 0.dp else 22.dp)
         )
     }
 }
 
+/** 왼쪽 레일. 위쪽 배지와 그 아래 세로줄을 한 컴포저블에 모았다. */
 @Composable
-private fun StepBadge(number: Int, isDone: Boolean) {
-    val green = accentGreenEffective()
+private fun StepMarker(number: Int, isDone: Boolean, connectsToNext: Boolean) {
+    Column(
+        modifier = Modifier.width(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        StepBadge(number = number, done = isDone)
+        if (connectsToNext) StepConnector()
+    }
+}
+
+/** 완료 표시일 때는 숫자 대신 체크 아이콘이 들어간다. */
+@Composable
+private fun StepBadge(number: Int, done: Boolean) {
+    val green   = accentGreenEffective()
+    val label   = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+    val fill    = if (done) green else green.copy(alpha = 0.12f)
+
     Box(
         modifier = Modifier
             .size(32.dp)
-            .background(if (isDone) green else green.copy(alpha = 0.12f), CircleShape),
+            .background(fill, CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        if (isDone) {
+        if (done) {
             MatchedIcon(
-                res = R.drawable.ic_sym_check,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.onPrimary
+                R.drawable.ic_sym_check,
+                label,
+                Modifier.size(18.dp),
+                MaterialTheme.colorScheme.onPrimary
             )
         } else {
-            Text(
-                text = "$number",
-                color = green,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-            )
+            Text("$number", color = green, style = label)
         }
     }
 }
 
+/** 다음 칸으로 이어지는 세로줄. 행 높이의 남는 공간을 채운다. */
 @Composable
 private fun ColumnScope.StepConnector() {
     Box(
@@ -142,22 +157,18 @@ private fun ColumnScope.StepConnector() {
     )
 }
 
+/** 오른쪽 본문: 제목 줄 → 설명 → (있으면) 다이얼 버튼 → (있으면) 추가 컨텐츠. */
 @Composable
-private fun StepContentBody(
-    step: SetupStep,
-    isLast: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val green = accentGreenEffective()
-    val titleStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+private fun StepBody(step: SetupStep, modifier: Modifier = Modifier) {
+    val green   = accentGreenEffective()
+    val heading = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+    val action  = step.actionLabel?.takeIf { step.onAction != null && step.onEditAction != null }
 
-    Column(
-        modifier = modifier.padding(top = 5.dp, bottom = if (isLast) 0.dp else 22.dp)
-    ) {
+    Column(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            MatchedIcon(step.icon, titleStyle, Modifier.size(18.dp), green)
+            MatchedIcon(step.icon, heading, Modifier.size(18.dp), green)
             Spacer(Modifier.width(8.dp))
-            Text(step.title, color = textPrimary(), style = titleStyle)
+            Text(step.title, color = textPrimary(), style = heading)
         }
         Spacer(Modifier.height(4.dp))
         Text(
@@ -165,9 +176,9 @@ private fun StepContentBody(
             color = textSecondary(),
             style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp)
         )
-        if (step.actionLabel != null && step.onAction != null && step.onEditAction != null) {
+        action?.let {
             Spacer(Modifier.height(10.dp))
-            DialCodeButton(step.actionLabel, step.onAction, step.onEditAction)
+            DialCodeButton(it, step.onAction!!, step.onEditAction!!)
         }
         step.content?.let {
             Spacer(Modifier.height(12.dp))
@@ -175,8 +186,6 @@ private fun StepContentBody(
         }
     }
 }
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DialCodeButton(label: String, onDial: () -> Unit, onEdit: () -> Unit) {
     val green     = accentGreenEffective()
@@ -220,63 +229,108 @@ private fun DialCodeButton(label: String, onDial: () -> Unit, onEdit: () -> Unit
     }
 }
 
-/** 4단계 — 폴더 권한이 주어진 뒤: 현재 상태와 변경 방법을 보여준다. */
+/**
+ * 4단계 — 폴더 권한을 받은 뒤 보이는 상태 블록.
+ *
+ * 위쪽 상태 배너와 아래쪽 초기화 버튼은 [isScanning] 값 하나로 함께 잠긴다.
+ * 스캔 중에는 배너 왼쪽이 회전 인디케이터로 바뀐다.
+ */
 @Composable
 fun FolderAccess(
     isScanning: Boolean,
     onOpenSettings: () -> Unit,
     onClearDataAndReload: () -> Unit
 ) {
-    val green         = accentGreenEffective()
-    val actionStyle   = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-    val settingsLabel = stringResource(R.string.setup_open_app_settings)
-    val buttonPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+    val green = accentGreenEffective()
 
     Column {
-        Surface(
-            onClick = onOpenSettings,
-            enabled = !isScanning,
-            shape   = RoundedCornerShape(12.dp),
-            color   = green.copy(alpha = 0.12f),
-            border  = BorderStroke(1.dp, green.copy(alpha = 0.35f))
+        PermissionBanner(
+            isScanning = isScanning,
+            green = green,
+            onOpenSettings = onOpenSettings
+        )
+        Spacer(Modifier.height(10.dp))
+        ClearDataButton(isScanning = isScanning, onClearData = onClearDataAndReload)
+    }
+}
+
+/** 권한 상태 배너. 스캔 중에는 회전 인디케이터가 상태 아이콘을 대신한다. */
+@Composable
+private fun PermissionBanner(isScanning: Boolean, green: Color, onOpenSettings: () -> Unit) {
+    val actionStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+    val settingsLabel = stringResource(R.string.setup_open_app_settings)
+    val stateLabel = stringResource(
+        if (isScanning) R.string.setup_scanning else R.string.setup_permission_granted
+    )
+
+    Surface(
+        onClick = onOpenSettings,
+        enabled = !isScanning,
+        shape = RoundedCornerShape(12.dp),
+        color = green.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, green.copy(alpha = 0.35f))
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isScanning) {
-                    CircularProgressIndicator(Modifier.size(16.dp), color = green, strokeWidth = 2.dp)
-                } else {
-                    MatchedIcon(R.drawable.ic_sym_check_circle, actionStyle, Modifier.size(16.dp), green)
-                }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    stringResource(if (isScanning) R.string.setup_scanning else R.string.setup_permission_granted),
-                    modifier = Modifier.weight(1f),
-                    color    = green,
-                    style    = actionStyle
+            BannerStateIcon(isScanning = isScanning, green = green)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                stateLabel,
+                modifier = Modifier.weight(1f),
+                color = green,
+                style = actionStyle
+            )
+            if (!isScanning) {
+                MatchedIcon(
+                    R.drawable.ic_sym_chevron_right,
+                    actionStyle,
+                    Modifier.size(18.dp).semantics { contentDescription = settingsLabel },
+                    green
                 )
-                if (!isScanning) {
-                    MatchedIcon(
-                        R.drawable.ic_sym_chevron_right,
-                        actionStyle,
-                        Modifier.size(18.dp).semantics { contentDescription = settingsLabel },
-                        green
-                    )
-                }
             }
         }
-        Spacer(Modifier.height(10.dp))
-        OutlinedButton(
-            onClick        = onClearDataAndReload,
-            enabled        = !isScanning,
-            modifier       = Modifier.fillMaxWidth().heightIn(min = 44.dp),
-            shape          = RoundedCornerShape(12.dp),
-            contentPadding = buttonPadding,
-            border         = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = if (isScanning) 0.3f else 0.6f)),
-            colors         = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-        ) {
-            Text(stringResource(R.string.clear_data_confirm), style = actionStyle, textAlign = TextAlign.Center)
-        }
+    }
+}
+
+/** 배너 왼쪽 아이콘 자리. 스캔 중이 아니면 체크 표시가 들어간다. */
+@Composable
+private fun BannerStateIcon(isScanning: Boolean, green: Color) {
+    if (isScanning) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(16.dp),
+            color = green,
+            strokeWidth = 2.dp
+        )
+    } else {
+        MatchedIcon(
+            R.drawable.ic_sym_check_circle,
+            MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            Modifier.size(16.dp),
+            green
+        )
+    }
+}
+
+/** 캐시를 지우고 다시 읽는 버튼. 스캔 중에는 비활성이다. */
+@Composable
+private fun ClearDataButton(isScanning: Boolean, onClearData: () -> Unit) {
+    val danger = MaterialTheme.colorScheme.error
+
+    OutlinedButton(
+        onClick = onClearData,
+        enabled = !isScanning,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        border = BorderStroke(1.dp, danger.copy(alpha = if (isScanning) 0.3f else 0.6f)),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = danger)
+    ) {
+        Text(
+            stringResource(R.string.clear_data_confirm),
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            textAlign = TextAlign.Center
+        )
     }
 }

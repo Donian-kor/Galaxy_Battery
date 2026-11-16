@@ -69,7 +69,7 @@
   - 파일이 보여도 파싱에 실패하면(배터리 정보가 없는 로그) 같은 오류가 뜰 수 있습니다. SysDump에서 **dumpstate/logcat**을 실행해 생성된 최신 `dumpState_*.log`를 선택하세요.
 - **로그 캐시**: 마지막으로 분석한 결과를 저장해, 같은 로그는 즉시 표시하고 새 파일이 생기면 다시 분석.
   판정에 쓰는 원본 값(ASOC·BSOH·Battery Usage)을 함께 저장하므로 캐시에서도 같은 등급·점수가 나옵니다.
-  저장 항목이 바뀌면 캐시 버전(`cache_schema_version`)이 올라가 이전 캐시는 자동으로 버려집니다.
+  저장 항목이 바뀌면 캐시 버전(`cache_schema_version`, 현재 5)이 올라가 이전 캐시는 자동으로 버려집니다.
 
 ## 배터리 날짜 표기
 
@@ -235,20 +235,20 @@ app/src/main/java/com/donian/galaxy_battery/
 ├── BatteryModels.kt         # BatteryInfo, DocEntry, ErrorDialog
 ├── BatteryHealth.kt         # 앱 내부 배터리 건강도 판정 로직(비공식)
 ├── BatteryReport.kt         # 공유용 진단 리포트 텍스트 생성
-├── GaugeComponents.kt       # 게이지·메트릭 타일·텔레메트리 행
+├── GaugeComponents.kt       # 게이지·텔레메트리·분석 요약 카드
 ├── SetupComponents.kt       # 설정 화면 구성 요소
 ├── CommonComponents.kt      # 공통 UI 조각
 ├── LogComponents.kt         # 원본 로그 줄 색상 강조·검색 하이라이트 빌더
 ├── MatchedIcon.kt           # 텍스트 굵기에 맞춰 늘어나는 아이콘
 ├── ErrorDialogs.kt          # 오류 다이얼로그
 ├── Localization.kt          # 숫자·날짜·상대 시간 지역화
-├── SystemColors.kt          # 기기 테마 색상 반영
+├── SystemColors.kt          # 시스템 색상 유틸리티 (sameHue, TonalRange, paletteColorScheme)
 ├── data/BatteryRepository.kt # SAF/SharedPreferences 접근 단일 진입점
 ├── ui/main/MainScreen.kt    # 대시보드 + 로그 목록 시트
 ├── ui/setup/SetupScreen.kt  # 설정 화면
 ├── ui/rawlog/RawLogScreen.kt# 원본 로그 화면
 ├── ui/theme/                # Color/Type/Theme
-└── viewmodel/               # 상태 묶음(FolderState, BatteryState 등)
+└── viewmodel/               # 상태 묶음(FolderState, BatteryState, LogSheetState, RawLogState, GaugeViewModel, DialCodeViewModel)
 ```
 
 ## 빌드와 테스트
@@ -273,7 +273,7 @@ app/src/main/java/com/donian/galaxy_battery/
 
 - `BatteryParserTest` — LLB CAL/MAN 분리, FirstUseDate, `ril.actdate`,
   날짜·타임스탬프 파싱과 파일 이름 처리
-- `BatteryHealthTest` — 파싱 5건 + 판정 20여 건 (경계값·점수 공식·불가 사유)
+- `BatteryHealthTest` — 27건 (파싱 5건 + 판정 22건, 경계값·점수 공식·불가 사유)
 - `BatteryCacheTest` — SharedPreferences를 흉내 내어 "파싱 직후 판정"과
   "캐시 복원 후 판정"이 같은지 확인 (BSOH 소실 회귀 방지)
 
