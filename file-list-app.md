@@ -98,7 +98,7 @@
 
 **총 파일: 87개 / 총 줄 수: 7,335**
 
-## 2. 테스트 (9개 / 1,546줄)
+## 2. 테스트 (10개 / 1,680줄)
 
 | 파일 | 소스셋 | 줄 수 | 케이스 |
 |---|---|---:|---:|
@@ -110,10 +110,11 @@
 | LocalizationTest.kt | test | 88 | — |
 | ScrollbarTest.kt | test | 53 | 5 |
 | SetupComponentsUiTest.kt | androidTest | 182 | 8 |
+| SetupLayoutUiTest.kt | androidTest | 134 | 3 |
 | SetupScreenUiTest.kt | androidTest | 27 | 2 |
 
 - **단위 테스트 `:app:testDebugUnitTest` — 106개 통과**
-- **UI 테스트 `:app:connectedDebugAndroidTest` — 10개 통과** (SM-N976N · SM-F926N 실기기 확인)
+- **UI 테스트 `:app:connectedDebugAndroidTest` — 13개 통과** (SM-N976N 실기기. SM-F926N은 초기 10개로 확인)
 
 > `LocalizationTest`의 케이스 수는 표에 적지 않았습니다(집계 기준이 다른 파일과 달라 오해를 부를 수 있음).
 

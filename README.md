@@ -295,11 +295,14 @@ app/src/main/java/com/donian/galaxy_battery/
   폴더 삭제(FolderDeleted 폴백) · 권한 상실(PermissionLost) · 로드된 파일 소멸(조용한 폴백) ·
   폴백 불가(미지원 표시)
 
-### UI 테스트 — 10개
+### UI 테스트 — 13개
 
 - `SetupScreenUiTest` — 설정 화면의 버튼과 앱 이름
 - `SetupComponentsUiTest` — 단계 배지(번호/체크), 다이얼 버튼(탭=다이얼·길게=편집·편집 아이콘),
   권한 블록(스캔 중 잠금·유휴 시 콜백)
+- `SetupLayoutUiTest` — **RTL**에서 배너 chevron이 문구의 시작(왼쪽)으로 뒤집히는지,
+  **글꼴 1.3배**에서도 제목·설명·다이얼 버튼이 남아 있는지. 
+  두 값은 기기 설정 대신 `LocalLayoutDirection`·`Density(fontScale)` 주입으로 검증합니다(재부팅 불필요).
 
 > [!WARNING]
 > 계측 테스트는 **기기 화면이 켜져 있어야** 합니다. 잠금 상태면 테스트 Activity가 올라오지 못해
