@@ -18,7 +18,7 @@
 
 ## 지원 기종
 
-`parser/DesignCapacityTable.kt`에 등록된 설계 용량 조회 기준입니다. 목록에 없어도 로그에
+`data/parser/DesignCapacityTable.kt`에 등록된 설계 용량 조회 기준입니다. 목록에 없어도 로그에
 값이 있으면 동작하지만, 설계 용량 추정과 일부 표기가 비어 있을 수 있습니다.
 
 | 계열 | 등록된 모델 |
@@ -224,32 +224,46 @@ T는 H 80/81/82/83/84에서 각각 500/467/434/400/350이고, 그 외 H는 501�
 
 ```
 app/src/main/java/com/donian/galaxy_battery/
-├── AppViewModel.kt          # 화면 상태와 폴더/스캔 흐름 전체 제어
-├── GalaxyBatteryApp.kt      # 앱 전용 공유 AppViewModel 소유
-├── MainActivity.kt          # 대시보드 호스트
-├── SetupActivity.kt         # 폴더 권한 부여/변경, 다이얼 코드
-├── LogRawActivity.kt        # 원본 배터리 라인 화면 호스트
-├── BatteryParser.kt         # 로그 파싱 본문(Android 의존 없는 순수 로직)
-├── parser/                  # 파서 조각: 기기별 설계 용량표·파일 이름·숫자 스캐너
-├── BatteryCache.kt          # SharedPreferences 기반 결과 캐시(스키마 버전)
-├── BatteryModels.kt         # BatteryInfo, DocEntry, ErrorDialog
-├── BatteryHealth.kt         # 앱 내부 배터리 건강도 판정 로직(비공식)
-├── BatteryReport.kt         # 공유용 진단 리포트 텍스트 생성
-├── GaugeComponents.kt       # 게이지·텔레메트리·분석 요약 카드
-├── SetupComponents.kt       # 설정 화면 구성 요소
-├── CommonComponents.kt      # 공통 UI 조각
-├── LogComponents.kt         # 원본 로그 줄 색상 강조·검색 하이라이트 빌더
-├── MatchedIcon.kt           # 텍스트 굵기에 맞춰 늘어나는 아이콘
-├── ErrorDialogs.kt          # 오류 다이얼로그
-├── Localization.kt          # 숫자·날짜·상대 시간 지역화
-├── SystemColors.kt          # 시스템 색상 유틸리티 (sameHue, TonalRange, paletteColorScheme)
-├── data/BatteryRepository.kt # SAF/SharedPreferences 접근 단일 진입점
-├── ui/main/MainScreen.kt    # 대시보드 + 로그 목록 시트
-├── ui/setup/SetupScreen.kt  # 설정 화면
-├── ui/rawlog/RawLogScreen.kt# 원본 로그 화면
-├── ui/theme/                # Color/Type/Theme
-└── viewmodel/               # 상태 묶음(FolderState, BatteryState, LogSheetState, RawLogState, GaugeViewModel, DialCodeViewModel)
+├── AppViewModel.kt              # 화면 상태와 폴더/스캔 흐름 전체 제어
+├── GalaxyBatteryApp.kt          # 앱 전용 공유 AppViewModel 소유
+├── MainActivity.kt              # 대시보드 호스트
+├── SetupActivity.kt             # 폴더 권한 부여/변경, 다이얼 코드
+├── LogRawActivity.kt            # 원본 배터리 라인 화면 호스트
+├── ui/
+│   ├── dashboard/               # 대시보드 화면과 카드
+│   │   ├── MainScreen.kt            # 화면 조립 + 리포트 내보내기 + 푸터
+│   │   ├── DashboardHeader.kt       # 상단 바(로그 pill·아이콘 버튼)
+│   │   ├── LogSheet.kt              # 로그 목록 시트와 목록 항목
+│   │   ├── GaugeCardShell.kt        # 공용 카드 껍데기 + 등급 라벨(내부 공유)
+│   │   ├── HealthGaugeCard.kt       # SOH 게이지 카드(다이얼·아크·진단 상세)
+│   │   ├── TelemetryCard.kt         # 사이클·용량 타일 + 배터리 날짜
+│   │   └── LogSummaryCard.kt        # 분석 요약 카드
+│   ├── common/                  # 화면 공용 조각
+│   │   ├── CommonComponents.kt      # 당겨서 새로고침·스크롤 손잡이 비율
+│   │   ├── ErrorDialogs.kt          # 오류 다이얼로그 호스트
+│   │   ├── MatchedIcon.kt           # 텍스트 굵기에 맞춰 늘어나는 아이콘
+│   │   └── Localization.kt          # 숫자·날짜·상대 시간 지역화
+│   ├── setup/                   # SetupScreen.kt + SetupComponents.kt
+│   ├── rawlog/                  # RawLogScreen.kt + LogComponents.kt
+│   └── theme/                   # Color · Theme · Type · SystemColors
+├── model/
+│   ├── BatteryModels.kt         # BatteryInfo, DocEntry, ErrorDialog
+│   ├── BatteryHealth.kt         # 앱 내부 배터리 건강도 판정 로직(비공식)
+│   └── BatteryReport.kt         # 공유용 진단 리포트 텍스트 생성
+├── data/
+│   ├── BatteryRepository.kt     # SAF/SharedPreferences 접근 단일 진입점
+│   ├── BatteryCache.kt          # SharedPreferences 기반 결과 캐시(스키마 버전)
+│   ├── FolderAccessManager.kt   # 영구 URI 권한 확인·정리, 폴더 URI 저장
+│   ├── ScanPolicy.kt            # 재스캔·복귀 시 분기 판정(Android 의존 없는 순수 함수)
+│   └── parser/                  # BatteryParser + 기기별 설계 용량표·파일 이름·숫자 스캐너
+└── viewmodel/                   # 상태 묶음(FolderState, BatteryState, LogSheetState,
+                                 #   RawLogState, GaugeViewModel, DialCodeViewModel)
 ```
+
+> [!NOTE]
+> 화면 코드는 **`ui/<화면>` · `model` · `data` · `viewmodel`** 로만 나뉘고, `Activity` 3개와
+> `GalaxyBatteryApp`·`AppViewModel`은 `AndroidManifest.xml`의 상대 클래스명 참조 때문에 루트에 남습니다.
+> **파일 하나가 500줄을 넘지 않도록** 유지합니다(현재 최대 `AppViewModel.kt` 497줄).
 
 ## 빌드와 테스트
 
@@ -267,17 +281,29 @@ app/src/main/java/com/donian/galaxy_battery/
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-단위 테스트는 파서(`BatteryParserTest`), 판정(`BatteryHealthTest`),
-캐시 왕복(`BatteryCacheTest`), 지역화(`LocalizationTest`),
-스크롤바·테마(`ScrollbarTest`, `SystemColorsTest`)를 다룹니다.
+### 단위 테스트 — 106개
+
+파서(`BatteryParserTest`), 판정(`BatteryHealthTest`), 캐시 왕복(`BatteryCacheTest`),
+스캔 분기(`ScanPolicyTest`), 지역화(`LocalizationTest`), 스크롤바·테마(`ScrollbarTest`, `SystemColorsTest`).
 
 - `BatteryParserTest` — LLB CAL/MAN 분리, FirstUseDate, `ril.actdate`,
   날짜·타임스탬프 파싱과 파일 이름 처리
 - `BatteryHealthTest` — 27건 (파싱 5건 + 판정 22건, 경계값·점수 공식·불가 사유)
 - `BatteryCacheTest` — SharedPreferences를 흉내 내어 "파싱 직후 판정"과
   "캐시 복원 후 판정"이 같은지 확인 (BSOH 소실 회귀 방지)
+- `ScanPolicyTest` — 6건: 캐시 파일명 동일(재파싱 없음) · 새 파일(파싱) ·
+  폴더 삭제(FolderDeleted 폴백) · 권한 상실(PermissionLost) · 로드된 파일 소멸(조용한 폴백) ·
+  폴백 불가(미지원 표시)
 
-UI 테스트는 `SetupScreenUiTest`가 설정 화면의 버튼과 앱 이름을 확인합니다.
+### UI 테스트 — 10개
+
+- `SetupScreenUiTest` — 설정 화면의 버튼과 앱 이름
+- `SetupComponentsUiTest` — 단계 배지(번호/체크), 다이얼 버튼(탭=다이얼·길게=편집·편집 아이콘),
+  권한 블록(스캔 중 잠금·유휴 시 콜백)
+
+> [!WARNING]
+> 계측 테스트는 **기기 화면이 켜져 있어야** 합니다. 잠금 상태면 테스트 Activity가 올라오지 못해
+> `No compose hierarchies found`로 실패하고, 무선 adb가 끊기면 `status -1`로 중단됩니다.
 
 ## 지역화
 
