@@ -33,7 +33,7 @@
 
 - 앱 이름: 갤럭시 배터리 정보
 - 패키지: `com.donian.galaxy_battery`
-- 버전: 2.3.0 (versionCode 20300)
+- 버전: 2.4.0 (versionCode 20400)
 - 최소 요구: Android 8.0 (minSdk 26) / 대상 SDK 37
 
 > [!IMPORTANT]
@@ -283,10 +283,11 @@ app/src/main/java/com/donian/galaxy_battery/
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-### 단위 테스트 — 106개
+### 단위 테스트 — 109개
 
 파서(`BatteryParserTest`), 판정(`BatteryHealthTest`), 캐시 왕복(`BatteryCacheTest`),
-스캔 분기(`ScanPolicyTest`), 지역화(`LocalizationTest`), 스크롤바·테마(`ScrollbarTest`, `SystemColorsTest`).
+스캔 분기(`ScanPolicyTest`), 화면 테마(`ThemeModeTest`), 지역화(`LocalizationTest`),
+스크롤바·시스템 색(`ScrollbarTest`, `SystemColorsTest`).
 
 - `BatteryParserTest` — LLB CAL/MAN 분리, FirstUseDate, `ril.actdate`,
   날짜·타임스탬프 파싱과 파일 이름 처리
@@ -296,6 +297,8 @@ app/src/main/java/com/donian/galaxy_battery/
 - `ScanPolicyTest` — 6건: 캐시 파일명 동일(재파싱 없음) · 새 파일(파싱) ·
   폴더 삭제(FolderDeleted 폴백) · 권한 상실(PermissionLost) · 로드된 파일 소멸(조용한 폴백) ·
   폴백 불가(미지원 표시)
+- `ThemeModeTest` — 3건: 사용자가 고른 값이 기기 설정을 이긴다(다크/라이트 양방향),
+  고른 적이 없으면 기기 설정을 따른다
 
 ### UI 테스트 — 13개
 
