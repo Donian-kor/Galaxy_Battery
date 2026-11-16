@@ -42,6 +42,8 @@ import com.donian.galaxy_battery.ui.common.ScreenContentTop
 fun SetupScreen(
     viewModel: AppViewModel,
     showBackButton: Boolean,
+    isDarkTheme: Boolean,
+    onToggleTheme: (Boolean) -> Unit,
     onPickFolder: () -> Unit,
     onOpenSettings: () -> Unit,
     onClearDataAndReload: () -> Unit,
@@ -178,6 +180,15 @@ fun SetupScreen(
                                     isDone = i == steps.lastIndex && hasLivePermission
                                 )
                             }
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // ── 화면 테마 ────────────────────────────────────────────
+                    SetupCard {
+                        Column(Modifier.padding(20.dp)) {
+                            ThemeToggle(isDark = isDarkTheme, onToggle = onToggleTheme)
                         }
                     }
                 }

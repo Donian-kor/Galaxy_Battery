@@ -28,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -257,6 +258,40 @@ private fun DialCodeButton(action: DialAction) {
                 textSecondary()
             )
         }
+    }
+}
+
+/**
+ * 화면 테마 전환 스위치.
+ *
+ * 고른 적이 없으면 기기 설정을 따르고, 한 번 고르면 그 선택이 저장되어 다음 실행에도 유지된다.
+ */
+@Composable
+fun ThemeToggle(isDark: Boolean, onToggle: (Boolean) -> Unit) {
+    val green   = accentGreenEffective()
+    val heading = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        MatchedIcon(R.drawable.ic_sym_tune, heading, Modifier.size(18.dp), green)
+        Spacer(Modifier.width(8.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.theme_dark_title),
+                color = textPrimary(),
+                style = heading
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                stringResource(R.string.theme_dark_desc),
+                color = textSecondary(),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(checked = isDark, onCheckedChange = onToggle)
     }
 }
 

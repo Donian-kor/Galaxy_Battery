@@ -77,16 +77,6 @@ class SetupActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_setup)
 
-        window.decorView.post {
-            val isDark = resources.configuration.uiMode and
-                    android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
-                    android.content.res.Configuration.UI_MODE_NIGHT_YES
-            WindowCompat.getInsetsController(window, window.decorView).apply {
-                isAppearanceLightStatusBars     = !isDark
-                isAppearanceLightNavigationBars = !isDark
-            }
-        }
-
         val viewModel = appViewModel
         val showBack  = intent.getBooleanExtra(EXTRA_SHOW_BACK, false)
 
@@ -97,10 +87,20 @@ class SetupActivity : ComponentActivity() {
         composeView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                GalaxyBatteryTheme {
+                GalaxyBatteryTheme(darkTheme = galaxyApp.isDarkTheme) {
+                    // 테마 값이 바뀌면 상태바·내비바 아이콘 대비도 같이 다시 맞춘다.
+                    val dark = galaxyApp.isDarkTheme
+                    SideEffect {
+                        WindowCompat.getInsetsController(window, window.decorView).apply {
+                            isAppearanceLightStatusBars     = !dark
+                            isAppearanceLightNavigationBars = !dark
+                        }
+                    }
                     SetupScreen(
                         viewModel               = viewModel,
                         showBackButton          = showBack,
+                        isDarkTheme             = dark,
+                        onToggleTheme           = { galaxyApp.applyTheme(it) },
                         onPickFolder            = { folderPicker.launch(null) },
                         onOpenSettings          = { openAppSettings() },
                         onClearDataAndReload = {

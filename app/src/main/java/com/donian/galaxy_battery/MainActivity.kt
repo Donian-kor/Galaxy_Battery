@@ -3,6 +3,7 @@ package com.donian.galaxy_battery
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.WindowCompat
 import com.donian.galaxy_battery.model.BatteryReport
@@ -17,17 +18,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
-
-        // 상태바/내비바 외형을 테마에 맞춘다.
-        window.decorView.post {
-            val isDark = resources.configuration.uiMode and
-                    android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
-                    android.content.res.Configuration.UI_MODE_NIGHT_YES
-            WindowCompat.getInsetsController(window, window.decorView).apply {
-                isAppearanceLightStatusBars     = !isDark
-                isAppearanceLightNavigationBars = !isDark
-            }
-        }
 
         val viewModel = appViewModel
 
@@ -46,7 +36,15 @@ class MainActivity : ComponentActivity() {
         composeView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                GalaxyBatteryTheme {
+                GalaxyBatteryTheme(darkTheme = galaxyApp.isDarkTheme) {
+                    // 테마 값이 바뀌면 상태바·내비바 아이콘 대비도 같이 다시 맞춘다.
+                    val dark = galaxyApp.isDarkTheme
+                    SideEffect {
+                        WindowCompat.getInsetsController(window, window.decorView).apply {
+                            isAppearanceLightStatusBars     = !dark
+                            isAppearanceLightNavigationBars = !dark
+                        }
+                    }
                     BatteryDashboard(
                         viewModel       = viewModel,
                         onNavigateSetup = {

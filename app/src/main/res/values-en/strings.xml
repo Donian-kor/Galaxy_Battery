@@ -16,6 +16,8 @@
     <string name="setup_permission_granted">Permission already granted</string>
     <string name="setup_grant_permission">Grant Log Folder Permission</string>
     <string name="setup_open_app_settings">Open App Settings</string>
+    <string name="theme_dark_title">Dark mode</string>
+    <string name="theme_dark_desc">On shows the app on a dark background. Off uses the light palette.</string>
     <string name="setup_back_to_dashboard">Return to Dashboard</string>
     <string name="setup_change_folder">Change Folder</string>
     <string name="setup_remove_access">Remove Access Permission</string>
