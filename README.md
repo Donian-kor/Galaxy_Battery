@@ -30,6 +30,12 @@
     <td align="center"><b>다크 모드</b></td>
     <td align="center"><b>라이트 모드</b></td>
   </tr>
+  <tr>
+    <td align="center" colspan="2"><img width="250" alt="설정 화면의 테마 전환" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/setup_theme_v240.png" /></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><b>설정 화면 — 4단계 아래의 테마 전환 스위치</b></td>
+  </tr>
 </table>
 
 ## 지원 기종
