@@ -50,6 +50,10 @@ import com.donian.galaxy_battery.ui.theme.cardColor
 import com.donian.galaxy_battery.ui.theme.textPrimary
 import com.donian.galaxy_battery.ui.theme.textSecondary
 
+/** 강조 패널의 배경·테두리 투명도. 배너와 다이얼 버튼이 같은 값을 쓴다. */
+private const val TINT_FILL_ALPHA = 0.12f
+private const val TINT_BORDER_ALPHA = 0.35f
+
 /**
  * Setup 머리글에 붙는 앱 마크.
  *
@@ -121,12 +125,16 @@ private fun StepMarker(number: Int, isDone: Boolean, connectsToNext: Boolean) {
     }
 }
 
+/** 강조 라벨 — 배지·배너·버튼이 같은 굵기를 쓴다. */
+@Composable
+private fun boldLabel() = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+
 /** 완료 표시일 때는 숫자 대신 체크 아이콘이 들어간다. */
 @Composable
 private fun StepBadge(number: Int, done: Boolean) {
     val green   = accentGreenEffective()
-    val label   = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-    val fill    = if (done) green else green.copy(alpha = 0.12f)
+    val label   = boldLabel()
+    val fill    = if (done) green else green.copy(alpha = TINT_FILL_ALPHA)
 
     Box(
         modifier = Modifier
@@ -164,7 +172,6 @@ private fun ColumnScope.StepConnector() {
 private fun StepBody(step: SetupStep, modifier: Modifier = Modifier) {
     val green   = accentGreenEffective()
     val heading = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
-    val action  = step.actionLabel?.takeIf { step.onAction != null && step.onEditAction != null }
 
     Column(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -178,30 +185,34 @@ private fun StepBody(step: SetupStep, modifier: Modifier = Modifier) {
             color = textSecondary(),
             style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp)
         )
-        action?.let {
+
+        // 다이얼 버튼은 라벨과 두 콜백이 모두 채워졌을 때만 그린다.
+        val dialLabel = step.actionLabel
+        val dialClick = step.onAction
+        val dialEdit  = step.onEditAction
+        if (dialLabel != null && dialClick != null && dialEdit != null) {
             Spacer(Modifier.height(10.dp))
-            DialCodeButton(it, step.onAction!!, step.onEditAction!!)
+            DialCodeButton(dialLabel, dialClick, dialEdit)
         }
+
         step.content?.let {
             Spacer(Modifier.height(12.dp))
             it()
         }
     }
 }
+
 @Composable
 private fun DialCodeButton(label: String, onDial: () -> Unit, onEdit: () -> Unit) {
     val green     = accentGreenEffective()
-    val codeStyle = MaterialTheme.typography.labelLarge.copy(
-        fontWeight    = FontWeight.Bold,
-        textDirection = TextDirection.Ltr
-    )
+    val codeStyle = boldLabel().copy(textDirection = TextDirection.Ltr)
     val editLabel = stringResource(R.string.dial_edit_title)
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Surface(
             shape  = RoundedCornerShape(12.dp),
-            color  = green.copy(alpha = 0.12f),
-            border = BorderStroke(1.dp, green.copy(alpha = 0.35f))
+            color  = green.copy(alpha = TINT_FILL_ALPHA),
+            border = BorderStroke(1.dp, green.copy(alpha = TINT_BORDER_ALPHA))
         ) {
             Row(
                 Modifier
@@ -259,18 +270,18 @@ fun FolderAccess(
 /** 권한 상태 배너. 스캔 중에는 회전 인디케이터가 상태 아이콘을 대신한다. */
 @Composable
 private fun PermissionBanner(isScanning: Boolean, green: Color, onOpenSettings: () -> Unit) {
-    val actionStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+    val actionStyle   = boldLabel()
     val settingsLabel = stringResource(R.string.setup_open_app_settings)
-    val stateLabel = stringResource(
+    val stateLabel    = stringResource(
         if (isScanning) R.string.setup_scanning else R.string.setup_permission_granted
     )
 
     Surface(
-        onClick = onOpenSettings,
-        enabled = !isScanning,
-        shape = RoundedCornerShape(12.dp),
-        color = green.copy(alpha = 0.12f),
-        border = BorderStroke(1.dp, green.copy(alpha = 0.35f))
+        onClick  = onOpenSettings,
+        enabled  = !isScanning,
+        shape    = RoundedCornerShape(12.dp),
+        color    = green.copy(alpha = TINT_FILL_ALPHA),
+        border   = BorderStroke(1.dp, green.copy(alpha = TINT_BORDER_ALPHA))
     ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp),
@@ -308,7 +319,7 @@ private fun BannerStateIcon(isScanning: Boolean, green: Color) {
     } else {
         MatchedIcon(
             R.drawable.ic_sym_check_circle,
-            MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            boldLabel(),
             Modifier.size(16.dp),
             green
         )
@@ -331,7 +342,7 @@ private fun ClearDataButton(isScanning: Boolean, onClearData: () -> Unit) {
     ) {
         Text(
             stringResource(R.string.clear_data_confirm),
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+            style = boldLabel(),
             textAlign = TextAlign.Center
         )
     }
