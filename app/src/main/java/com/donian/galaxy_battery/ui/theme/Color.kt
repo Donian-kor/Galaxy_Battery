@@ -1,6 +1,5 @@
 package com.donian.galaxy_battery.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -208,34 +207,6 @@ internal val ClassicLightColors = AppColors(
     scrollbarThumb    = Color(0xFFB0C0D8),
     scrollbarTrack    = Color(0xFFE2E8F0),
 )
-
-/**
- * Android 12+: everything follows the wallpaper except the gauge and warning colors, which
- * stay fixed so that a red wallpaper can't make a healthy battery look like a failing one.
- *
- * Cards and the corner buttons sit well apart from the page so they read clearly: in dark,
- * near-black cards on a lighter page; in light, white cards on a gray page.
- */
-internal fun dynamicAppColors(scheme: ColorScheme, darkTheme: Boolean) =
-    (if (darkTheme) ClassicDarkColors else ClassicLightColors).copy(
-        page              = if (darkTheme) scheme.surfaceContainerHighest else scheme.surfaceContainerHigh,
-        card              = scheme.surfaceContainerLowest,
-        inset             = scheme.surfaceContainerLow,
-        cornerButton      = if (darkTheme) scheme.surfaceContainer else scheme.surfaceContainerLowest,
-        cardBorder        = scheme.outlineVariant,
-        textMuted         = scheme.outline,
-        gaugeGray         = scheme.outline,
-        refreshIndicator  = scheme.primary,
-        logKey            = scheme.onSurfaceVariant,
-        logValue          = scheme.onSurface,
-        logSection        = scheme.primary,
-        searchHighlightBg = scheme.primaryContainer,
-        searchHighlightFg = scheme.onPrimaryContainer,
-        searchBadgeBg     = scheme.tertiaryContainer,
-        searchBadgeFg     = scheme.onTertiaryContainer,
-        scrollbarThumb    = scheme.outline,
-        scrollbarTrack    = scheme.surfaceContainerHighest,
-    )
 
 internal val LocalAppColors = staticCompositionLocalOf<AppColors> {
     error("No AppColors provided: wrap the content in GalaxyBatteryTheme")

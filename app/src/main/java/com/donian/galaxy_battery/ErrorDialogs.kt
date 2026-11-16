@@ -96,21 +96,6 @@ private fun permissionLostLook() = DialogLook(
     body = R.string.error_permission_lost_body
 )
 
-@Composable
-fun WrongFolderDialog(errorMessage: String, onDismiss: () -> Unit) {
-    ErrorDialogScaffold(wrongFolderLook(errorMessage), onDismiss)
-}
-
-@Composable
-fun FolderDeletedDialog(onDismiss: () -> Unit) {
-    ErrorDialogScaffold(folderDeletedLook(), onDismiss)
-}
-
-@Composable
-fun PermissionLostDialog(onDismiss: () -> Unit) {
-    ErrorDialogScaffold(permissionLostLook(), onDismiss)
-}
-
 /** 모든 오류 다이얼로그가 공유하는 껍데기. 가운데 정렬된 카드 하나를 띄운다. */
 @Composable
 private fun ErrorDialogScaffold(look: DialogLook, onDismiss: () -> Unit) {

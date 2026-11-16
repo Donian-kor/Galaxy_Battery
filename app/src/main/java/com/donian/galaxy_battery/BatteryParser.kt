@@ -247,6 +247,8 @@ object BatteryParser {
                     NumberScanner.leadingNumber(t, "Design capacity:")
                         ?.let { designCapacityMah = NumberScanner.microAhToMah(it) }
                 // ── ACTION_BATTERY_CHANGED 인라인 충전 카운터·사이클 ────────────
+                // 인라인 `cc:` 는 위 서비스 덤프가 값을 비워 둔 때만 쓰는 폴백이다.
+                // 둘 다 있으면 서비스 덤프(`charge counter:`) 값이 남아야 한다.
                 if (chargeCounterMah == null)
                     NumberScanner.inlineNumber(t, "cc:", allowNegative = false)
                         ?.let { chargeCounterMah = NumberScanner.microAhToMah(it) }
