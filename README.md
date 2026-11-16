@@ -33,7 +33,7 @@
 
 - 앱 이름: 갤럭시 배터리 정보
 - 패키지: `com.donian.galaxy_battery`
-- 버전: 2.2.2 (versionCode 20202)
+- 버전: 2.3.0 (versionCode 20300)
 - 최소 요구: Android 8.0 (minSdk 26) / 대상 SDK 37
 
 > [!IMPORTANT]
