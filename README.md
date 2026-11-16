@@ -23,18 +23,20 @@
 
 <table>
   <tr>
-    <td align="center"><img width="250" alt="다크 모드" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/theme_dark_v240.png" /></td>
-    <td align="center"><img width="250" alt="라이트 모드" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/theme_light_v240.png" /></td>
+    <td align="center"><img width="280" alt="대시보드 — 다크 모드" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_dark_v240.png" /></td>
+    <td align="center"><img width="280" alt="대시보드 — 라이트 모드" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/dashboard_light_v240.png" /></td>
   </tr>
   <tr>
-    <td align="center"><b>다크 모드</b></td>
-    <td align="center"><b>라이트 모드</b></td>
+    <td align="center"><b>대시보드 — 다크 모드</b></td>
+    <td align="center"><b>대시보드 — 라이트 모드</b></td>
   </tr>
   <tr>
-    <td align="center" colspan="2"><img width="250" alt="설정 화면의 테마 전환" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/setup_theme_v240.png" /></td>
+    <td align="center"><img width="280" alt="설정 — 다크 모드" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/setup_dark_v240.png" /></td>
+    <td align="center"><img width="280" alt="설정 — 라이트 모드" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/setup_light_v240.png" /></td>
   </tr>
   <tr>
-    <td align="center" colspan="2"><b>설정 화면 — 4단계 아래의 테마 전환 스위치</b></td>
+    <td align="center"><b>설정 — 다크 모드</b></td>
+    <td align="center"><b>설정 — 라이트 모드</b></td>
   </tr>
 </table>
 
