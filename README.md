@@ -16,6 +16,22 @@
   </tr>
 </table>
 
+## 화면 테마
+
+설정 화면 하단에서 다크/라이트를 직접 고릅니다. 고른 값은 저장되어 다음 실행에도 유지되고,
+고른 적이 없으면 기기 설정을 따릅니다.
+
+<table>
+  <tr>
+    <td align="center"><img width="250" alt="다크 모드" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/theme_dark_v240.png" /></td>
+    <td align="center"><img width="250" alt="라이트 모드" src="https://raw.githubusercontent.com/Donian-kor/Galaxy_Battery/main/screenshots/theme_light_v240.png" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>다크 모드</b></td>
+    <td align="center"><b>라이트 모드</b></td>
+  </tr>
+</table>
+
 ## 지원 기종
 
 `data/parser/DesignCapacityTable.kt`에 등록된 설계 용량 조회 기준입니다. 목록에 없어도 로그에
