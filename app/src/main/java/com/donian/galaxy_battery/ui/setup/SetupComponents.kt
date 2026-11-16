@@ -91,6 +91,27 @@ data class SetupStep(
     val content: (@Composable () -> Unit)? = null
 )
 
+/**
+ * 다이얼 코드 동작 하나.
+ *
+ * [SetupStep] 은 라벨과 두 콜백을 따로 들고 있어서 "셋 다 있거나 셋 다 없거나"라는 규칙이
+ * 호출부마다 흔어진다. 그 셋을 한 값으로 묶어 버튼이 반쪽 상태로 그려질 수 없게 한다.
+ * [SetupStep] 의 필드 구성은 그대로 두어 공개 시그니처는 바꾸지 않는다.
+ */
+private data class DialAction(
+    val label: String,
+    val onDial: () -> Unit,
+    val onEdit: () -> Unit
+)
+
+/** 라벨과 두 콜백이 모두 채워졌을 때만 다이얼 동작이 성립한다. */
+private fun SetupStep.dialAction(): DialAction? {
+    val label  = actionLabel  ?: return null
+    val onDial = onAction     ?: return null
+    val onEdit = onEditAction ?: return null
+    return DialAction(label, onDial, onEdit)
+}
+
 /** 단계 타임라인의 한 칸. 완료된 단계는 번호 대신 체크 표시로 바뀐다. */
 @Composable
 fun SetupStepRow(number: Int, step: SetupStep, isLast: Boolean, isDone: Boolean = false) {
@@ -186,13 +207,10 @@ private fun StepBody(step: SetupStep, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp)
         )
 
-        // 다이얼 버튼은 라벨과 두 콜백이 모두 채워졌을 때만 그린다.
-        val dialLabel = step.actionLabel
-        val dialClick = step.onAction
-        val dialEdit  = step.onEditAction
-        if (dialLabel != null && dialClick != null && dialEdit != null) {
+        // 다이얼 버튼은 라벨과 두 콜백이 한 값으로 모였을 때만 그린다.
+        step.dialAction()?.let { action ->
             Spacer(Modifier.height(10.dp))
-            DialCodeButton(dialLabel, dialClick, dialEdit)
+            DialCodeButton(action)
         }
 
         step.content?.let {
@@ -203,7 +221,7 @@ private fun StepBody(step: SetupStep, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DialCodeButton(label: String, onDial: () -> Unit, onEdit: () -> Unit) {
+private fun DialCodeButton(action: DialAction) {
     val green     = accentGreenEffective()
     val codeStyle = boldLabel().copy(textDirection = TextDirection.Ltr)
     val editLabel = stringResource(R.string.dial_edit_title)
@@ -216,14 +234,14 @@ private fun DialCodeButton(label: String, onDial: () -> Unit, onEdit: () -> Unit
         ) {
             Row(
                 Modifier
-                    .combinedClickable(onClick = onDial, onLongClick = onEdit)
+                    .combinedClickable(onClick = action.onDial, onLongClick = action.onEdit)
                     .padding(horizontal = 14.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 MatchedIcon(R.drawable.ic_sym_call, codeStyle, Modifier.size(16.dp), green)
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    label,
+                    action.label,
                     color    = green,
                     style    = codeStyle,
                     softWrap = false
@@ -231,7 +249,7 @@ private fun DialCodeButton(label: String, onDial: () -> Unit, onEdit: () -> Unit
             }
         }
         Spacer(Modifier.width(4.dp))
-        IconButton(onClick = onEdit) {
+        IconButton(onClick = action.onEdit) {
             MatchedIcon(
                 R.drawable.ic_sym_edit,
                 codeStyle,
