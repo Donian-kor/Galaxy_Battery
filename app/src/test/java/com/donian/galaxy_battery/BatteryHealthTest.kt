@@ -4,13 +4,20 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
+/**
+ * 파서가 읽어 온 값을 [BatteryHealthClassifier]가 어떤 등급·점수로 판정하는지 고정한다 (27개).
+ *
+ * 판정 규칙은 "위 조건부터 순서대로 확인해 첫 번째로 일치하는 규칙을 적용"하는 단일 우선순위표다.
+ * 그래서 각 H(건강도) 구간의 **경계값**과 각 규칙의 **점수 공식**을 하나씩 못 박아 둔다.
+ * 경계가 한 칸이라도 어긋나면 같은 로그에서 등급과 점수가 통째로 달라진다.
+ */
 class BatteryHealthParsingTest {
 
     private fun parse(log: String) =
         BatteryParser.parseInputStream(log.byteInputStream(), "dumpState_test.log")
 
     @Test
-    fun `bracketed asoc and saved usage retain original values`() {
+    fun `bracketed asoc and saved usage keep their raw values`() {
         val info = parse("mSavedBatteryAsoc: [73]\nmSavedBatteryUsage: 97034\n")
 
         assertEquals(73, info.asocValue)
@@ -25,7 +32,7 @@ class BatteryHealthParsingTest {
     }
 
     @Test
-    fun `unbracketed asoc and fractional cycles parse for note ten plus`() {
+    fun `a plain asoc with fractional cycles parses for the note ten plus`() {
         val info = parse("mSavedBatteryAsoc: 84\nmSavedBatteryUsage: 169906\n")
 
         assertEquals(84, info.asocValue)
@@ -39,7 +46,7 @@ class BatteryHealthParsingTest {
     }
 
     @Test
-    fun `missing and negative source values remain distinguishable`() {
+    fun `a missing value and a negative value stay distinguishable`() {
         val missing = parse("unrelated line\n")
         val negative = parse("mSavedBatteryAsoc: -1\nmSavedBatteryUsage: -100\n")
 
@@ -53,14 +60,14 @@ class BatteryHealthParsingTest {
     }
 
     @Test
-    fun `zero and out of range asoc values are preserved`() {
+    fun `zero and out of range asoc values are kept as parsed`() {
         assertEquals(0, parse("mSavedBatteryAsoc: 0\n").asocValue)
         assertEquals(-2, parse("mSavedBatteryAsoc: -2\n").asocValue)
         assertEquals(101, parse("mSavedBatteryAsoc: 101\n").asocValue)
     }
 
     @Test
-    fun `parsed info carries its assessment`() {
+    fun `a parsed result carries its own assessment`() {
         val info = parse("mSavedBatteryAsoc: 73\nmSavedBatteryUsage: 97034\n")
 
         assertEquals(
@@ -73,20 +80,28 @@ class BatteryHealthParsingTest {
 
 class BatteryHealthClassifierTest {
 
+    /** 사이클을 usage 환산값(batteryUsage)으로 넘겨 등급만 확인한다. */
     private fun assertGrade(asoc: Int?, cycles: Int, expected: BatteryHealthGrade, bsoh: Int? = null) {
         val assessment = BatteryHealthClassifier.assess(asoc, cycles * 100, bsoh)
         assertEquals(expected, assessment.grade)
         assertEquals(cycles, assessment.convertedCycles)
     }
 
-    private fun assertScore(asoc: Int, cycles: Int, expectedGrade: BatteryHealthGrade, expectedScore: Int, bsoh: Int? = null) {
+    /** 등급과 점수를 함께 확인한다. */
+    private fun assertGradeAndScore(
+        asoc: Int,
+        cycles: Int,
+        expectedGrade: BatteryHealthGrade,
+        expectedScore: Int,
+        bsoh: Int? = null
+    ) {
         val assessment = BatteryHealthClassifier.assess(asoc, cycles * 100, bsoh)
         assertEquals(expectedGrade, assessment.grade)
         assertEquals(expectedScore, assessment.score)
     }
 
     @Test
-    fun `rule 7 verification table tests`() {
+    fun `rule 7 verification table`() {
         // 1. 없음, 73, 970 -> 보통, 76
         val t1 = BatteryHealthClassifier.assess(asoc = 73, batteryUsage = 97000, bsoh = null)
         assertEquals(BatteryHealthGrade.NORMAL, t1.grade)
@@ -170,7 +185,7 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `asoc 85 boundaries`() {
+    fun `asoc 85 sits on the good and weak boundary`() {
         assertGrade(85, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
         assertGrade(85, 30, BatteryHealthGrade.GOOD)
         assertGrade(85, 1199, BatteryHealthGrade.GOOD)
@@ -178,7 +193,7 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `asoc 84 boundaries`() {
+    fun `asoc 84 crosses from bad to good at cycle 350`() {
         assertGrade(84, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
         assertGrade(84, 30, BatteryHealthGrade.BAD)
         assertGrade(84, 349, BatteryHealthGrade.BAD)
@@ -188,31 +203,31 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `asoc 83 bad cutoff`() {
+    fun `asoc 83 crosses from bad to good at cycle 400`() {
         assertGrade(83, 399, BatteryHealthGrade.BAD)
         assertGrade(83, 400, BatteryHealthGrade.GOOD)
     }
 
     @Test
-    fun `asoc 82 bad cutoff`() {
+    fun `asoc 82 crosses from bad to good at cycle 434`() {
         assertGrade(82, 433, BatteryHealthGrade.BAD)
         assertGrade(82, 434, BatteryHealthGrade.GOOD)
     }
 
     @Test
-    fun `asoc 81 bad cutoff`() {
+    fun `asoc 81 crosses from bad to good at cycle 467`() {
         assertGrade(81, 466, BatteryHealthGrade.BAD)
         assertGrade(81, 467, BatteryHealthGrade.GOOD)
     }
 
     @Test
-    fun `asoc 80 bad cutoff`() {
+    fun `asoc 80 crosses from bad to good at cycle 500`() {
         assertGrade(80, 499, BatteryHealthGrade.BAD)
         assertGrade(80, 500, BatteryHealthGrade.GOOD)
     }
 
     @Test
-    fun `asoc 79 boundaries`() {
+    fun `asoc 79 crosses from bad to normal at cycle 501`() {
         assertGrade(79, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
         assertGrade(79, 30, BatteryHealthGrade.BAD)
         assertGrade(79, 500, BatteryHealthGrade.BAD)
@@ -222,7 +237,7 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `asoc 66 boundaries`() {
+    fun `asoc 66 shares the cycle 501 boundary`() {
         assertGrade(66, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
         assertGrade(66, 30, BatteryHealthGrade.BAD)
         assertGrade(66, 500, BatteryHealthGrade.BAD)
@@ -231,13 +246,13 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `cycle under 30 takes priority over other conditions`() {
+    fun `fewer than thirty cycles outranks every other condition`() {
         assertGrade(55, 0, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
         assertGrade(0, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
     }
 
     @Test
-    fun `asoc minus one and zero cannot be calculated from cycle 30 onward`() {
+    fun `an asoc of minus one or zero cannot be scored from cycle thirty on`() {
         for (asoc in listOf(-1, 0)) {
             assertGrade(asoc, 30, BatteryHealthGrade.CALCULATION_UNAVAILABLE)
             assertGrade(asoc, 1200, BatteryHealthGrade.CALCULATION_UNAVAILABLE)
@@ -245,7 +260,7 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `asoc 55 and below is end of life only from 1200 cycles`() {
+    fun `an asoc of fifty five or less is end of life only from twelve hundred cycles`() {
         assertGrade(55, 30, BatteryHealthGrade.WEAK)
         assertGrade(55, 1199, BatteryHealthGrade.WEAK)
         assertGrade(55, 1200, BatteryHealthGrade.BAD)
@@ -256,14 +271,14 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `asoc 56 through 65 is weak below 1200 cycles`() {
+    fun `asoc fifty six through sixty five stays weak`() {
         assertGrade(56, 30, BatteryHealthGrade.WEAK)
         assertGrade(65, 1199, BatteryHealthGrade.WEAK)
         assertGrade(65, 1200, BatteryHealthGrade.WEAK)
     }
 
     @Test
-    fun `early degradation bad has a distinct reason`() {
+    fun `early degradation carries its own bad reason`() {
         assertEquals(
             BatteryHealthBadReason.EARLY_DEGRADATION,
             BatteryHealthClassifier.assess(79, 3000).badReason
@@ -271,7 +286,7 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `missing asoc is only classified when the cycle rule determines it`() {
+    fun `a missing asoc is decided by the cycle rule alone`() {
         assertGrade(null, 29, BatteryHealthGrade.DIAGNOSTIC_UNAVAILABLE)
         assertGrade(null, 30, BatteryHealthGrade.CALCULATION_UNAVAILABLE)
         assertGrade(null, 1199, BatteryHealthGrade.CALCULATION_UNAVAILABLE)
@@ -279,7 +294,7 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `missing or negative usage cannot be assessed`() {
+    fun `a missing or negative usage blocks the assessment`() {
         val missing = BatteryHealthClassifier.assess(73, null)
         val negative = BatteryHealthClassifier.assess(73, -1)
 
@@ -290,13 +305,13 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `out of range asoc is not corrected`() {
+    fun `an out of range asoc is never corrected`() {
         assertGrade(-2, 100, BatteryHealthGrade.UNDETERMINED)
         assertGrade(101, 100, BatteryHealthGrade.UNDETERMINED)
     }
 
     @Test
-    fun `missing asoc and usage are undetermined`() {
+    fun `a missing asoc and usage together are undetermined`() {
         val assessment = BatteryHealthClassifier.assess(null, null)
 
         assertEquals(BatteryHealthGrade.UNDETERMINED, assessment.grade)
@@ -305,7 +320,7 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `final grade maps to its diagnostic index range`() {
+    fun `the final grade maps onto its diagnostic index range`() {
         assertEquals(20..49, BatteryHealthClassifier.assess(79, 3000).diagnosticIndexRange)
         assertEquals(50..69, BatteryHealthClassifier.assess(84, 120000).diagnosticIndexRange)
         assertEquals(70..84, BatteryHealthClassifier.assess(73, 97034).diagnosticIndexRange)
@@ -313,16 +328,16 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `score formulas match the expected values`() {
-        assertScore(73, 970, BatteryHealthGrade.NORMAL, 76)
-        assertScore(84, 1699, BatteryHealthGrade.WEAK, 64)
-        assertScore(90, 300, BatteryHealthGrade.GOOD, 95)
-        assertScore(73, 200, BatteryHealthGrade.BAD, 30)
-        assertScore(50, 2000, BatteryHealthGrade.BAD, 13)
+    fun `the score formulas land on the documented values`() {
+        assertGradeAndScore(73, 970, BatteryHealthGrade.NORMAL, 76)
+        assertGradeAndScore(84, 1699, BatteryHealthGrade.WEAK, 64)
+        assertGradeAndScore(90, 300, BatteryHealthGrade.GOOD, 95)
+        assertGradeAndScore(73, 200, BatteryHealthGrade.BAD, 30)
+        assertGradeAndScore(50, 2000, BatteryHealthGrade.BAD, 13)
     }
 
     @Test
-    fun `unavailable grade carries the specific reason`() {
+    fun `each unavailable grade names its own reason`() {
         // 사이클을 못 읽음 / 건강도 범위 밖 / 건강도 없음 / 사이클 부족은
         // 화면 문구는 같아도 원인이 다르다.
         assertEquals(
@@ -344,7 +359,7 @@ class BatteryHealthClassifierTest {
     }
 
     @Test
-    fun `ok grades carry no unavailable reason`() {
+    fun `a successful grade carries no unavailable reason`() {
         assertNull(BatteryHealthClassifier.assess(73, 97034).unavailableReason)
         assertNull(BatteryHealthClassifier.assess(50, 200000).unavailableReason)
     }

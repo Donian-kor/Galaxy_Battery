@@ -34,11 +34,11 @@ import androidx.core.view.WindowCompat
 class SetupActivity : ComponentActivity() {
 
     companion object {
-        /** Pass true when opening Setup from the Dashboard (back button visible). */
+        /** 대시보드에서 Setup을 열 때 true (뒤로가기 버튼 표시). */
         const val EXTRA_SHOW_BACK = "show_back"
     }
 
-    // ── Folder picker ─────────────────────────────────────────────────────────
+    // ── 폴더 선택기 ──────────────────────────────────────────────────────
     private val folderPicker = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
@@ -47,17 +47,17 @@ class SetupActivity : ComponentActivity() {
         val viewModel = appViewModel
         val showBack  = intent.getBooleanExtra(EXTRA_SHOW_BACK, false)
 
-        // onFolderPicked now validates the folder and calls back with success/failure.
-        // We only navigate away on success — on failure we stay here and show the
-        // WrongFolder error dialog (set by the ViewModel).
+        // onFolderPicked가 이제 폴더를 검증하고 성공/실패로 콜백한다.
+        // 성공 시에만 화면을 넘기고, 실패하면 여기 머무르며 ViewModel이
+        // 설정한 WrongFolder 오류 다이얼로그를 보여준다.
         viewModel.onFolderPicked(uri) { success ->
             if (success) {
                 if (showBack) {
-                    // Opened from Dashboard → go back; MainActivity is still alive
+                    // 대시보드에서 열림 → 뒤로 돌아간다; MainActivity가 아직 살아 있다
                     finish()
                 } else {
-                    // First-run → launch Dashboard, clear back stack so user can't
-                    // return to Setup with the back button
+                    // 최초 실행 → 대시보드를 실행하고 백스택을 지워 사용자가
+                    // 뒤로가기로 Setup에 돌아올 수 없게 한다
                     startActivity(
                         Intent(this, MainActivity::class.java)
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -65,12 +65,12 @@ class SetupActivity : ComponentActivity() {
                     finish()
                 }
             }
-            // On failure: ViewModel has set errorDialog — the Compose UI will show it.
-            // We intentionally do NOT navigate; the user must pick a correct folder.
+            // 실패 시: ViewModel이 errorDialog를 설정했다 — Compose UI가 표시한다.
+            // 일부러 이동하지 않으며, 사용자가 올바른 폴더를 골라야 한다.
         }
     }
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // ── 생명주기 ────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,7 +90,7 @@ class SetupActivity : ComponentActivity() {
         val viewModel = appViewModel
         val showBack  = intent.getBooleanExtra(EXTRA_SHOW_BACK, false)
 
-        // Restored in a new process: the ViewModel starts out empty, so reload the saved folder.
+        // 새 프로세스에서 복원된 경우: ViewModel이 비어 시작하므로 저장된 폴더를 다시 로드한다.
         if (savedInstanceState != null && viewModel.folderUri == null) viewModel.initialize()
 
         val composeView = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.compose_view)
@@ -105,7 +105,7 @@ class SetupActivity : ComponentActivity() {
                         onOpenSettings          = { openAppSettings() },
                         onClearDataAndReload = {
                             viewModel.clearAllData(keepUri = false)
-                            // After clearing, re-pick the log folder so the user can reload their data.
+                            // 초기화 후, 사용자가 데이터를 다시 불러오도록 로그 폴더를 다시 고르게 한다.
                             folderPicker.launch(null)
                         },
                         onBack         = { finish() },
@@ -118,16 +118,16 @@ class SetupActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Access can be revoked in Settings while this screen is open. Skip while a folder
-        // pick is being scanned: its result arrives just before this and handles errors itself.
+        // 이 화면이 열린 동안 설정에서 접근 권한이 회수될 수 있다. 폴더 선택을
+        // 스캔 중이라면 건너뛴다: 그 결과가 바로 직전에 도착해 오류를 직접 처리한다.
         val viewModel = appViewModel
         if (!viewModel.isLoadingDetail) viewModel.checkOnResume()
     }
 
-    /** Not every device has a phone app, a Wi-Fi tablet for example. */
+    /** Wi-Fi 태블릿처럼 전화 앱이 없는 기기도 있다. */
     private fun openDialer(code: String) {
-        // Dial code may come from user input, so sanitize it to ASCII digits and the
-        // symbols the dialer accepts — anything else could break the tel: URI scheme.
+        // 다이얼 코드는 사용자 입력에서 올 수 있으므로, ASCII 숫자와 다이얼러가 받는
+        // 기호만 남기도록 정제한다 — 그 외는 tel: URI 스킴을 깰 수 있다.
         val sanitized = code.filter { it in '0'..'9' || it == '*' || it == '#' || it == '+' }
         if (sanitized.isBlank()) return
         try {
@@ -138,8 +138,8 @@ class SetupActivity : ComponentActivity() {
     }
 
     /**
-     * Android gives third-party apps no way to open their Permissions page directly,
-     * so this opens App info, which is one tap away from it.
+     * Android는 서드파티 앱이 자신의 권한 페이지를 직접 열 방법을 제공하지 않는다.
+     * 그래서 앱 정보(App info)를 연다 — 권한 페이지에서 한 탭 거리다.
      */
     private fun openAppSettings() {
         val appInfo = Intent(

@@ -1,22 +1,39 @@
 package com.donian.galaxy_battery
-import com.donian.galaxy_battery.ui.theme.*
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -24,10 +41,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.donian.galaxy_battery.ui.theme.accentGreenEffective
+import com.donian.galaxy_battery.ui.theme.cardBorderColor
+import com.donian.galaxy_battery.ui.theme.cardColor
+import com.donian.galaxy_battery.ui.theme.textPrimary
+import com.donian.galaxy_battery.ui.theme.textSecondary
 
 @Composable
 fun AppLogo(modifier: Modifier = Modifier) {
@@ -38,7 +58,7 @@ fun AppLogo(modifier: Modifier = Modifier) {
     )
 }
 
-/** The card every Setup section sits in, matching the Dashboard's cards. */
+/** Setup 의 각 섹션이 놓이는 카드. 대시보드의 카드와 톤을 맞춘다. */
 @Composable
 fun SetupCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     ElevatedCard(
@@ -60,68 +80,98 @@ data class SetupStep(
     val content: (@Composable () -> Unit)? = null
 )
 
-/** One stop on the steps timeline. A finished step swaps its number for a tick. */
+/** 단계 타임라인의 한 칸. 완료된 단계는 번호 대신 체크 표시로 바뀐다. */
 @Composable
 fun SetupStepRow(number: Int, step: SetupStep, isLast: Boolean, isDone: Boolean = false) {
-    val green      = accentGreenEffective()
-    val titleStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
-
-    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                Modifier
-                    .size(32.dp)
-                    .background(if (isDone) green else green.copy(alpha = 0.12f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isDone) {
-                    MatchedIcon(
-                        R.drawable.ic_sym_check,
-                        MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                        Modifier.size(18.dp),
-                        MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text(
-                        "$number",
-                        color = green,
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
-            }
+            StepBadge(number = number, isDone = isDone)
             if (!isLast) {
-                Box(
-                    Modifier
-                        .padding(vertical = 5.dp)
-                        .width(2.dp)
-                        .weight(1f)
-                        .background(cardBorderColor(), RoundedCornerShape(1.dp))
-                )
+                StepConnector()
             }
         }
 
         Spacer(Modifier.width(14.dp))
 
-        Column(Modifier.weight(1f).padding(top = 5.dp, bottom = if (isLast) 0.dp else 22.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                MatchedIcon(step.icon, titleStyle, Modifier.size(18.dp), green)
-                Spacer(Modifier.width(8.dp))
-                Text(step.title, color = textPrimary(), style = titleStyle)
-            }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                step.desc,
-                color = textSecondary(),
-                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp)
+        StepContentBody(
+            step = step,
+            isLast = isLast,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun StepBadge(number: Int, isDone: Boolean) {
+    val green = accentGreenEffective()
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .background(if (isDone) green else green.copy(alpha = 0.12f), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isDone) {
+            MatchedIcon(
+                res = R.drawable.ic_sym_check,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onPrimary
             )
-            if (step.actionLabel != null && step.onAction != null && step.onEditAction != null) {
-                Spacer(Modifier.height(10.dp))
-                DialCodeButton(step.actionLabel, step.onAction, step.onEditAction)
-            }
-            step.content?.let {
-                Spacer(Modifier.height(12.dp))
-                it()
-            }
+        } else {
+            Text(
+                text = "$number",
+                color = green,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.StepConnector() {
+    Box(
+        modifier = Modifier
+            .padding(vertical = 5.dp)
+            .width(2.dp)
+            .weight(1f)
+            .background(cardBorderColor(), RoundedCornerShape(1.dp))
+    )
+}
+
+@Composable
+private fun StepContentBody(
+    step: SetupStep,
+    isLast: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val green = accentGreenEffective()
+    val titleStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+
+    Column(
+        modifier = modifier.padding(top = 5.dp, bottom = if (isLast) 0.dp else 22.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MatchedIcon(step.icon, titleStyle, Modifier.size(18.dp), green)
+            Spacer(Modifier.width(8.dp))
+            Text(step.title, color = textPrimary(), style = titleStyle)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            step.desc,
+            color = textSecondary(),
+            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp)
+        )
+        if (step.actionLabel != null && step.onAction != null && step.onEditAction != null) {
+            Spacer(Modifier.height(10.dp))
+            DialCodeButton(step.actionLabel, step.onAction, step.onEditAction)
+        }
+        step.content?.let {
+            Spacer(Modifier.height(12.dp))
+            it()
         }
     }
 }
@@ -170,7 +220,7 @@ private fun DialCodeButton(label: String, onDial: () -> Unit, onEdit: () -> Unit
     }
 }
 
-/** Step 4 once the folder is granted: how things stand, and how to change them. */
+/** 4단계 — 폴더 권한이 주어진 뒤: 현재 상태와 변경 방법을 보여준다. */
 @Composable
 fun FolderAccess(
     isScanning: Boolean,
@@ -230,4 +280,3 @@ fun FolderAccess(
         }
     }
 }
-

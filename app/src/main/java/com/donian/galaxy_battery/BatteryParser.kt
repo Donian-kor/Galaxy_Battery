@@ -12,7 +12,7 @@ import kotlin.math.roundToInt
 
 object BatteryParser {
 
-    // ── File-name helpers (delegated to LogFileNameParser) ───────────────────
+    // ── 파일명 관련 도우미 (LogFileNameParser에 위임) ─────────────────────────
 
     fun isDumpStateLog(name: String): Boolean = LogFileNameParser.isDumpStateLog(name)
 
@@ -22,82 +22,125 @@ object BatteryParser {
 
     fun lookupDesignCapacity(modelOrFileName: String): Int? = DesignCapacityTable.lookup(modelOrFileName)
 
-    /** Returns the log's battery sections as one block of text, or null if it has none. */
+    /**
+     * 로그에서 배터리 관련 섹션을 뽑아 하나의 텍스트 블록으로 합친다. 없으면 null.
+     *
+     * 섹션은 두 종류다 — `BatteryInfoBackUp` 블록과 `DUMP OF SERVICE battery:` 블록.
+     * 각 줄을 상태(대기/백업/서비스)에 따라 분류해 누적한 뒤,
+     * 로그 버퍼(EventLogBuffer 등) 잡음을 걸러낸다.
+     */
     internal fun readBatterySections(stream: InputStream): String? {
-        val sections = mutableListOf<Pair<String, String>>()
-        val currentSection = StringBuilder()
-        var currentLabel = ""
-        var state = 0
+        // (라벨, 내용) 쌍을 순서대로 모은다.
+        val collected = mutableListOf<Pair<String, String>>()
+        val buffer     = StringBuilder()
+        var label      = ""
+        var mode       = Mode.SEEK
 
-        fun closeSection() {
-            sections.add(currentLabel to currentSection.trim().toString())
-            currentSection.clear()
+        fun flush() {
+            collected += label to buffer.trim().toString()
+            buffer.clear()
         }
 
         BufferedReader(InputStreamReader(stream)).use { reader ->
-            reader.forEachLine { line ->
-                when (state) {
-                    0 -> when {
-                        line.contains("BatteryInfoBackUp") -> {
-                            if (currentSection.isNotEmpty()) closeSection()
-                            state = 1; currentLabel = "BatteryInfoBackUp"
-                        }
-                        line.contains("DUMP OF SERVICE battery:") -> {
-                            if (currentSection.isNotEmpty()) closeSection()
-                            state = 2; currentLabel = "Battery Service Dump"
+            reader.forEachLine { raw ->
+                when (mode) {
+                    Mode.SEEK -> {
+                        val start = sectionStart(raw)
+                        if (start != null) {
+                            if (buffer.isNotEmpty()) flush()
+                            label = start.label
+                            mode = start.mode
                         }
                     }
-                    1 -> {
-                        if (line.isNotBlank() && !line.startsWith(" ") && !line.startsWith("\t")
-                            && !line.trimStart().startsWith("m")) {
-                            state = 0
-                            if (line.contains("DUMP OF SERVICE battery:")) {
-                                if (currentSection.isNotEmpty()) closeSection()
-                                state = 2; currentLabel = "Battery Service Dump"
+                    Mode.BACKUP -> {
+                        if (leavesBackupBlock(raw)) {
+                            val next = serviceDumpStart(raw)
+                            if (next != null) {
+                                // 서비스 덤프가 바로 이어지면, 비어 있는 백업 섹션은 버린다.
+                                if (buffer.isNotEmpty()) flush()
+                                label = next.label
+                                mode  = next.mode
                             } else {
-                                closeSection()
-                                currentLabel = ""
+                                // 그 외에는 지금까지 모은 백업 섹션(빈 섹션이어도)을 확정한다.
+                                flush()
+                                label = ""
+                                mode  = Mode.SEEK
                             }
                         } else {
-                            currentSection.append(line).append('\n')
+                            buffer.append(raw).append('\n')
                         }
                     }
-                    2 -> {
-                        if (line.contains("DUMP OF SERVICE") && !line.contains("DUMP OF SERVICE battery:")) {
-                            state = 0
-                            closeSection()
-                            currentLabel = ""
+                    Mode.SERVICE -> {
+                        if (leavesServiceBlock(raw)) {
+                            flush()
+                            label = ""
+                            mode = Mode.SEEK
                         } else {
-                            currentSection.append(line).append('\n')
+                            buffer.append(raw).append('\n')
                         }
                     }
                 }
             }
-            if (currentSection.isNotEmpty()) closeSection()
+            if (buffer.isNotEmpty()) flush()
         }
 
-        if (sections.isEmpty()) return null
+        if (collected.isEmpty()) return null
 
-        val logBufferRegex = Regex("""^\[\w+LogBuffer]""")
-        return sections.joinToString("\n\n") { (label, content) ->
-            val filtered = buildString {
-                var insideBuffer = false
-                content.lines().forEach { line ->
-                    val trimmed = line.trim()
-                    when {
-                        logBufferRegex.containsMatchIn(trimmed) -> insideBuffer = true
-                        insideBuffer && trimmed.isEmpty() -> {}
-                        insideBuffer && (trimmed.startsWith("[") || (!trimmed.startsWith(" ") &&
-                                trimmed.isNotEmpty() && !trimmed.first().isDigit())) -> {
-                            insideBuffer = false; appendLine(line)
-                        }
-                        insideBuffer -> {}
-                        else -> appendLine(line)
+        return collected.joinToString("\n\n") { (sectionLabel, content) ->
+            val filtered = stripLogBufferNoise(content)
+            if (sectionLabel.isNotEmpty()) "━━━ $sectionLabel ━━━\n\n$filtered" else filtered
+        }
+    }
+
+    /** 섹션 판정 상태. SEEK=대기, BACKUP=백업 블록 내부, SERVICE=서비스 덤프 내부. */
+    private enum class Mode { SEEK, BACKUP, SERVICE }
+
+    /** 섹션 시작 줄이면 (라벨, 진입할 모드)를, 아니면 null 을 돌린다. */
+    private data class SectionStart(val label: String, val mode: Mode)
+
+    /** 이 줄이 새 섹션의 시작인지 판정한다. */
+    private fun sectionStart(raw: String): SectionStart? = when {
+        raw.contains("BatteryInfoBackUp") -> SectionStart("BatteryInfoBackUp", Mode.BACKUP)
+        else -> serviceDumpStart(raw)
+    }
+
+    /** 서비스 덤프(`DUMP OF SERVICE battery:`) 시작 줄이면 해당 섹션 정보를 돌려준다. */
+    private fun serviceDumpStart(raw: String): SectionStart? =
+        if (raw.contains("DUMP OF SERVICE battery:")) {
+            SectionStart("Battery Service Dump", Mode.SERVICE)
+        } else {
+            null
+        }
+
+    /** BACKUP 블록을 벗어나는 줄인지 판정한다(들여쓰기 없이 시작하고 'm'으로 시작하지 않는 줄). */
+    private fun leavesBackupBlock(raw: String): Boolean =
+        raw.isNotBlank() && !raw.startsWith(" ") && !raw.startsWith("\t") &&
+                !raw.trimStart().startsWith("m")
+
+    /** SERVICE 블록을 벗어나는 줄인지(다른 DUMP OF SERVICE). */
+    private fun leavesServiceBlock(raw: String): Boolean =
+        raw.contains("DUMP OF SERVICE") && !raw.contains("DUMP OF SERVICE battery:")
+
+    /** `[...LogBuffer]` 이후의 잡음을 제거한 본문을 만든다. */
+    private fun stripLogBufferNoise(content: String): String {
+        val bufferHeader = Regex("""^\[\w+LogBuffer]""")
+        return buildString {
+            var insideBuffer = false
+            content.lines().forEach { raw ->
+                val trimmed = raw.trim()
+                when {
+                    bufferHeader.containsMatchIn(trimmed) -> insideBuffer = true
+                    insideBuffer && trimmed.isEmpty() -> {}
+                    insideBuffer && (trimmed.startsWith("[") ||
+                            (trimmed.isNotEmpty() && !trimmed.startsWith(" ") && !trimmed.first().isDigit())) -> {
+                        insideBuffer = false
+                        appendLine(raw)
                     }
+                    insideBuffer -> {}
+                    else -> appendLine(raw)
                 }
-            }.trimEnd()
-            if (label.isNotEmpty()) "━━━ $label ━━━\n\n$filtered" else filtered
-        }
+            }
+        }.trimEnd()
     }
 
     fun parseInputStream(stream: InputStream, fileName: String): BatteryInfo {
@@ -190,7 +233,7 @@ object BatteryParser {
                     }
                 }
 
-                // ── Live battery service telemetry ────────────────────────────
+                // ── 배터리 서비스의 실시간 측정값 ──────────────────────────────
                 if (level < 0) NumberScanner.leadingNumber(t, "level:")?.let { level = it }
 
                 if (chargeCounterMah == null)

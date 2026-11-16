@@ -1,57 +1,23 @@
 package com.donian.galaxy_battery
-import com.donian.galaxy_battery.ui.theme.*
-
-import com.donian.galaxy_battery.ui.main.BatteryDashboard
 
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
+import com.donian.galaxy_battery.ui.main.BatteryDashboard
+import com.donian.galaxy_battery.ui.theme.GalaxyBatteryTheme
 
 class MainActivity : ComponentActivity() {
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // ── 생명주기 ────────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
 
-        // Status-bar / nav-bar appearance tracks theme
+        // 상태바/내비바 외형을 테마에 맞춘다.
         window.decorView.post {
             val isDark = resources.configuration.uiMode and
                     android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
@@ -64,17 +30,17 @@ class MainActivity : ComponentActivity() {
 
         val viewModel = appViewModel
 
-        // A restored Activity can land in a new process, where the ViewModel starts out empty.
+        // 복원된 Activity는 새 프로세스에서 시작될 수 있으며, 이때 ViewModel은 비어 있다.
         val needsLoad = savedInstanceState == null || viewModel.folderUri == null
 
-        // First-run: no folder URI saved → open Setup, finish this Activity
+        // 최초 실행: 저장된 폴더 URI가 없음 → Setup 실행 후 현재 Activity 종료
         if (needsLoad && !viewModel.initialize()) {
             startActivity(Intent(this, SetupActivity::class.java))
             finish()
             return
         }
 
-        // Attach Compose content to the ComposeView declared in activity_main.xml
+        // activity_main.xml에 선언된 ComposeView에 Compose 콘텐츠를 연결한다.
         val composeView = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.compose_view)
         composeView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -101,7 +67,7 @@ class MainActivity : ComponentActivity() {
         appViewModel.checkOnResume()
     }
 
-    /** Opens the system share sheet with the diagnostic report the dashboard exported. */
+    /** 대시보드가 내보낸 진단 리포트를 시스템 공유 시트로 연다. */
     private fun shareBatteryReport() {
         val info = appViewModel.batteryInfo ?: return
         val send = Intent(Intent.ACTION_SEND).apply {
@@ -112,4 +78,3 @@ class MainActivity : ComponentActivity() {
         startActivity(Intent.createChooser(send, getString(R.string.report_share)))
     }
 }
-

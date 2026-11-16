@@ -285,13 +285,11 @@ UI 테스트는 `SetupScreenUiTest`가 설정 화면의 버튼과 앱 이름을 
 
 ## 라이선스 및 면책
 
-이 프로젝트는 [Alyaqdhans/MyBattery](https://github.com/Alyaqdhans/MyBattery) 저장소를 참고하여 개발되었습니다.
+이 저장소는 소유자에게 모든 권리가 있는 **All Rights Reserved** 라이선스입니다. 전문은 [LICENSE](LICENSE) 파일을 참고하세요.
 
-이 저장소는 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International) 라이선스를 따르며, 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.
-
-- **저작자 표시 (BY)**: 원저작자 및 출처를 표시해야 합니다.
-- **비상업적 이용 (NC)**: 본 소프트웨어의 전부 또는 일부를 상업적 목적으로 이용할 수 없습니다.
-- **동일조건변경허락 (SA)**: 본 소프트웨어의 전부 또는 일부를 사용·수정·포함한 저작물(파생물 포함)을 배포·공개·제공하는 경우, 해당 소스 코드를 **동일한 라이선스(CC BY-NC-SA 4.0) 조건으로 공개**해야 합니다.
+- **허용**: 개인적 학습·열람 목적의 소스 코드 확인, 호스팅 플랫폼(GitHub 등)의 포크·이슈·풀 리퀘스트를 통한 협업
+- **금지**: 사전 서면 동의 없는 복제·수정·배포·공개·상업적 이용
+- **서드파티**: Android SDK·Jetpack Compose·AndroidX·Material Symbols 아이콘은 각각 Apache License 2.0을 따르며 본 라이선스가 적용되지 않습니다.
 
 앱은 기기 로그를 읽기만 하며 원본 파일을 수정하지 않습니다.
 

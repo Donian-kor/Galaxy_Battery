@@ -12,11 +12,11 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
-// ── Theme composable ──────────────────────────────────────────────────────────
+// ── 테마 컴포저블 ──────────────────────────────────────────────────────
 /**
- * The dashboard is built on a fixed dark-first brand palette, so the wallpaper's
- * dynamic colors are deliberately not used: they would recolor the gauges and cards
- * away from the design. Light mode is the derived tonal counterpart.
+ * 대시보드는 고정된 다크 우선 브랜드 팔레트로 만들어지므로,
+ * 배경화면의 동적 색은 일부러 쓰지 않는다. 쓰면 게이지와 카드가
+ * 디자인에서 벗어난 색으로 다시 칠해지기 때문이다. 라이트 모드는 그 명도 대응이다.
  */
 @Composable
 fun GalaxyBatteryTheme(
@@ -28,13 +28,13 @@ fun GalaxyBatteryTheme(
 
     MaterialTheme(colorScheme = colorScheme) {
         CompositionLocalProvider(LocalAppColors provides appColors) {
-            // No screen paints its own background, so this is the page color app-wide.
+            // 각 화면이 배경을 직접 칠하지 않으므로, 이것이 앱 전역의 페이지 색이다.
             Box(Modifier.fillMaxSize().background(appColors.page)) { content() }
         }
     }
 }
 
-// ── Theme-aware color helpers (call inside Composition) ───────────────────────
+// ── 테마 인지 색 헬퍼 (Composition 안에서 호출) ────────────────────────────
 @Composable fun appColors()             = LocalAppColors.current
 @Composable fun cardColor()             = appColors().card
 @Composable fun cardBorderColor()       = appColors().cardBorder

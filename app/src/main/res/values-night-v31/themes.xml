@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     res/values-night-v31/themes.xml
-    Android 12+ dark mode: matches the fixed brand page color used by Compose.
+    안드로이드 12+ 다크 모드: Compose에서 사용하는 고정 브랜드 페이지 색상과 일치시킨다.
 -->
 <resources>
 

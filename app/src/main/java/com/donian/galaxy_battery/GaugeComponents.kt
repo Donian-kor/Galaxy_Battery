@@ -46,14 +46,14 @@ private fun BatteryHealthAssessment.gradeLabelResource(): Int = when (grade) {
     BatteryHealthGrade.UNDETERMINED -> R.string.assessment_grade_undetermined
 }
 
-// ── Shared card shell ─────────────────────────────────────────────────────────
+// ── 공용 카드 껍데기 ─────────────────────────────────────────────────────────
 
-/** The dashboard's card: fixed border, recessed page-colored blocks inside it. */
+/** 대시보드의 카드: 고정 테두리와 안쪽의 페이지 색 블록. */
 @Composable
 private fun DashboardCard(
     modifier: Modifier = Modifier,
     padding: Dp = 20.dp,
-    // The hero card's soft corner highlight, straight from the design.
+    // 히어로 카드의 부드러운 코너 강조(글로우).
     glow: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -88,7 +88,7 @@ private fun DashboardCard(
     }
 }
 
-// ── SOH hero card ─────────────────────────────────────────────────────────────
+// ── SOH 히어로 카드 ───────────────────────────────────────────────────────────
 
 @Composable
 fun HealthGaugeCard(
@@ -444,7 +444,7 @@ private fun HealthGaugeDial(
     }
 }
 
-/** Draws the design's open 270° dial: a recessed track plus a layered glowing arc. */
+/** 디자인의 열린 270° 다이얼을 그린다: 잠긴 트랙 + 겹겹의 글로우 호. */
 @Composable
 private fun GaugeArc(
     progress: Float,
@@ -454,7 +454,7 @@ private fun GaugeArc(
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier) {
-        // The design's SVG uses r=64 inside a 160 box with a 9-wide stroke.
+        // 디자인 SVG는 160 박스 안에 r=64, 선 두께 9를 쓴다.
         val ringDiameter = size.minDimension * 0.856f
         val strokeWidth  = size.minDimension * 0.058f
         val topLeft = Offset(
@@ -478,7 +478,7 @@ private fun GaugeArc(
         val sweep = full * progress.coerceIn(0f, 1f)
         if (sweep > 0.1f) {
             val glow = 0.06f + 0.10f * pulse.coerceIn(0f, 1f)
-            // Cheap glow: a few wider, fainter strokes behind the crisp arc.
+            // 값싼 글로우: 선명한 호 뒤에 더 굵고 흐린 선을 몇 겹 덧칠한다.
             drawArc(fillColor.copy(alpha = glow * 0.45f), start, sweep, false, topLeft, arcSize,
                 style = Stroke(width = strokeWidth * 3.2f, cap = StrokeCap.Round))
             drawArc(fillColor.copy(alpha = glow * 0.7f), start, sweep, false, topLeft, arcSize,
@@ -491,7 +491,7 @@ private fun GaugeArc(
     }
 }
 
-// ── Telemetry card: cycles, capacity and the vital readouts ───────────────────
+// ── 텔레메트리 카드: 사이클·용량·주요 판독값 ─────────────────────────────────
 
 @Composable
 fun TelemetryCard(
@@ -538,7 +538,7 @@ fun TelemetryCard(
         BatteryMetaSection(info, isLoadingDetail)
         Spacer(Modifier.height(14.dp))
 
-        // Metric tiles
+        // 지표 타일들
         val cyclesFraction = (cyclesAnim.value / 800f).coerceIn(0f, 1f)
         val cyclesMetric = MetricTileData(
             title = stringResource(R.string.cycles_metric_title),
@@ -820,7 +820,7 @@ private fun BatteryDateLabel(text: String, color: Color, modifier: Modifier) {
     )
 }
 
-// ── Analysis summary card ─────────────────────────────────────────────────────
+// ── 분석 요약 카드 ───────────────────────────────────────────────────────────
 
 @Composable
 fun LogSummaryCard(

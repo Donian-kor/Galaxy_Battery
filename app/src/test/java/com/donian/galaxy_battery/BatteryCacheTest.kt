@@ -9,15 +9,17 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 /**
- * 캐시 왕복 검증.
+ * 캐시 왕복(save → load) 검증.
  *
- * SharedPreferences를 직접 주고받는 대신 [BatteryCache]가 읽고 쓰는 키를 그대로 흉내 내므로,
- * 실제 SharedPreferences 구현(AndroidX test) 없이도 "무엇이 저장되고 무엇이 빠졌는지"를
- * JVM 단위 테스트로 고정할 수 있다. `bsohValue` 누락이 등급을 바꿨던 회귀를 막는 것이 목적이다.
+ * 실제 SharedPreferences 대신 [BatteryCache]가 읽고 쓰는 키를 흉내 낸 저장소를 주입한다.
+ * 그래서 AndroidX test 환경 없이도 "무엇이 저장되고 무엇이 빠졌는지"를 JVM 단위 테스트로 고정할 수 있다.
+ *
+ * 이 테스트가 막으려는 회귀는 `bsohValue` 누락이다. 판정 입력 하나가 캐시에서 사라지면
+ * 같은 로그인데 캐시 경로에서만 등급과 점수가 달라진다.
  */
 class BatteryCacheTest {
 
-    /** 저장된 키/값만 보관하는 최소 SharedPreferences 흉내. */
+    /** 저장된 키/값만 보관하는 최소 SharedPreferences 구현. */
     private class FakePrefs : SharedPreferences {
         val store = mutableMapOf<String, Any?>()
 
@@ -71,14 +73,18 @@ class BatteryCacheTest {
     private fun parse(log: String) =
         BatteryParser.parseInputStream(log.byteInputStream(), "dumpState_test.log")
 
+    /** 파싱 결과를 캐시에 저장했다가 즉시 되읽는다. */
     private fun roundTrip(info: BatteryInfo): BatteryInfo {
         val prefs = FakePrefs()
         BatteryCache.cacheBatteryInfo(prefs, info)
         return requireNotNull(BatteryCache.loadCachedBatteryInfo(prefs))
     }
 
+    private fun epochOf(compactDate: String): Long =
+        requireNotNull(SimpleDateFormat("yyyyMMdd", Locale.US).parse(compactDate)).time
+
     @Test
-    fun `cache round trip keeps the bsoh based assessment`() {
+    fun `a round trip preserves the bsoh based assessment`() {
         // BSOH(94)와 ASOC(100)가 다를 때 판정은 BSOH를 쓴다.
         val parsed = parse(
             "mSavedBatteryAsoc: 100\nmSavedBatteryBsoh: 94\nmSavedBatteryUsage: 42900\n"
@@ -94,7 +100,7 @@ class BatteryCacheTest {
     }
 
     @Test
-    fun `cache round trip keeps every assessment input`() {
+    fun `a round trip preserves all three assessment inputs`() {
         val parsed = parse(
             "mSavedBatteryAsoc: 73\nmSavedBatteryUsage: 97034\n" +
                     "Design capacity: 4000000\nmSavedBatteryBsoh: 71\n"
@@ -108,8 +114,8 @@ class BatteryCacheTest {
     }
 
     @Test
-    fun `llb cal and man survive the round trip separately`() {
-        // 제조일(LLB MAN)과 장착·보정일(LLB CAL)은 별개 필드다.
+    fun `manufacture and calibration dates survive as separate fields`() {
+        // LLB MAN(제조일)과 LLB CAL(장착·보정일)은 서로 다른 날짜다.
         val parsed = parse(
             "LLB CAL: 20190925\n" +
                     "LLB MAN: 20190924\n" +
@@ -118,22 +124,13 @@ class BatteryCacheTest {
         )
         val restored = roundTrip(parsed)
 
-        assertEquals(
-            requireNotNull(SimpleDateFormat("yyyyMMdd", Locale.US).parse("20190924")).time,
-            restored.manufactureDateMs
-        )
-        assertEquals(
-            requireNotNull(SimpleDateFormat("yyyyMMdd", Locale.US).parse("20190925")).time,
-            restored.calibratedDateMs
-        )
-        assertEquals(
-            requireNotNull(SimpleDateFormat("yyyyMMdd", Locale.US).parse("20230310")).time,
-            restored.firstUseDateMs
-        )
+        assertEquals(epochOf("20190924"), restored.manufactureDateMs)
+        assertEquals(epochOf("20190925"), restored.calibratedDateMs)
+        assertEquals(epochOf("20230310"), restored.firstUseDateMs)
     }
 
     @Test
-    fun `negative and out of range inputs survive the round trip`() {
+    fun `negative and out of range inputs survive unchanged`() {
         val restored = roundTrip(parse("mSavedBatteryAsoc: -2\nmSavedBatteryUsage: -1\n"))
 
         assertEquals(-2, restored.asocValue)
@@ -142,7 +139,7 @@ class BatteryCacheTest {
     }
 
     @Test
-    fun `cached display source uses the enum`() {
+    fun `the cached display source comes back as the enum`() {
         val bsoh = roundTrip(parse("mSavedBatteryBsoh: 74\nmSavedBatteryUsage: 30000\n"))
         assertEquals(HealthSource.BSOH, bsoh.healthSource)
         assertEquals(74, bsoh.healthPercent)
@@ -152,7 +149,7 @@ class BatteryCacheTest {
     }
 
     @Test
-    fun `failed reads are not cached`() {
+    fun `a failed read is never cached`() {
         val prefs = FakePrefs()
         BatteryCache.cacheBatteryInfo(prefs, parse("unrelated line\n"))
 
@@ -160,7 +157,7 @@ class BatteryCacheTest {
     }
 
     @Test
-    fun `legacy cache without a schema version is discarded`() {
+    fun `a cache written before the schema version existed is dropped`() {
         // 이전 버전이 남긴 캐시: bsohValue가 없어 등급이 ASOC 기준으로 달라진다.
         val prefs = FakePrefs()
         prefs.edit()
@@ -174,7 +171,7 @@ class BatteryCacheTest {
     }
 
     @Test
-    fun `clearing removes every key the cache writes`() {
+    fun `clearing wipes every key the cache ever writes`() {
         val prefs = FakePrefs()
         BatteryCache.cacheBatteryInfo(prefs, parse("mSavedBatteryAsoc: 85\nmSavedBatteryUsage: 30000\n"))
         assertTrue(prefs.store.isNotEmpty())

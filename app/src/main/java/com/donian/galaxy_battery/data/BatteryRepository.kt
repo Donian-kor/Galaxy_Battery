@@ -11,11 +11,10 @@ import com.donian.galaxy_battery.BatteryParser
 import com.donian.galaxy_battery.DocEntry
 
 /**
- * Owns all Android/SAF/SharedPreferences interaction for battery-log data.
+ * SAF/SharedPreferences 및 배터리 로그 데이터 접근을 총괄하는 리포지토리.
  *
- * [BatteryParser] stays a pure parser (no Context/SAF). This repository is the
- * single place that talks to the content resolver and the prefs store, so the
- * parser can be unit-tested without an Android environment.
+ * [BatteryParser]는 Android 의존성 없는 순수 파서로 두고,
+ * ContentResolver 및 SharedPreferences 상호작용을 이 리포지토리가 한 곳에서 처리한다.
  */
 class BatteryRepository(
     private val context: Context,
@@ -41,8 +40,38 @@ class BatteryRepository(
                 null, null, null
             )?.use { it.count >= 0 } ?: false
         } catch (e: Exception) {
-            // 권한 만료·URI 무효화를 "권한 없음"으로 뭉개면 문의 대응이 불가능하다.
             Log.w(TAG, "persisted permission check failed for $folderUri", e)
+            false
+        }
+    }
+
+    /**
+     * 선택한 폴더 이름이나 URI 경로에 "log" 또는 "sysdump" 단어가 포함되어 있는지 확인한다.
+     * 초비자가 엉뚱한 일반 폴더(Download, DCIM 등)를 눌렀을 때 조기 안내하기 위한 스마트 검증용이다.
+     */
+    fun isLogFolderUri(folderUri: Uri): Boolean {
+        val treeDocId = try {
+            DocumentsContract.getTreeDocumentId(folderUri)
+        } catch (_: Exception) {
+            ""
+        }
+        if (treeDocId.contains("log", ignoreCase = true) || treeDocId.contains("sysdump", ignoreCase = true)) {
+            return true
+        }
+
+        return try {
+            val docUri = DocumentsContract.buildDocumentUriUsingTree(folderUri, treeDocId)
+            context.contentResolver.query(
+                docUri,
+                arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+                null, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val name = cursor.getString(0) ?: ""
+                    name.contains("log", ignoreCase = true) || name.contains("sysdump", ignoreCase = true)
+                } else false
+            } ?: false
+        } catch (_: Exception) {
             false
         }
     }
@@ -77,11 +106,19 @@ class BatteryRepository(
     }
 
     fun findLatestLogEntry(folderUri: Uri): DocEntry? {
-        val treeDocId = DocumentsContract.getTreeDocumentId(folderUri)
+        val treeDocId = try { DocumentsContract.getTreeDocumentId(folderUri) } catch (_: Exception) { "" }
         val topLevel = listChildren(folderUri, treeDocId)
         val dirMime = DocumentsContract.Document.MIME_TYPE_DIR
 
         var allLogs = topLevel.filter { BatteryParser.isDumpStateLog(it.name) }.toMutableList()
+
+        // 스마트 폴더 검증: 폴더 이름이 'log'가 아니고 최상위에 dumpState_*.log도 없으면
+        // 일반 폴더(Download 등)로 판단해 하위 디렉토리를 쓸데없이 탐색하지 않고 null 반환
+        val isLogFolder = isLogFolderUri(folderUri)
+        if (allLogs.isEmpty() && !isLogFolder) {
+            return null
+        }
+
         if (allLogs.isEmpty()) {
             for (child in topLevel) {
                 if (child.mime == dirMime)
@@ -94,7 +131,7 @@ class BatteryRepository(
     }
 
     fun listAllLogs(folderUri: Uri): List<DocEntry> {
-        val treeDocId = DocumentsContract.getTreeDocumentId(folderUri)
+        val treeDocId = try { DocumentsContract.getTreeDocumentId(folderUri) } catch (_: Exception) { "" }
         val topLevel = listChildren(folderUri, treeDocId)
         val dirMime = DocumentsContract.Document.MIME_TYPE_DIR
 
@@ -118,71 +155,56 @@ class BatteryRepository(
             context.contentResolver.openInputStream(fileUri)?.use { stream ->
                 BatteryParser.parseInputStream(stream, entry.name)
             } ?: BatteryInfo(
-                healthPercent = null, cycleCount = null,
+                healthPercent = null,
+                cycleCount = null,
                 logFileName = entry.name,
-                errorMessage = "Could not open ${entry.name}"
+                readSuccess = false,
+                errorMessage = "파일을 열 수 없습니다."
             )
         } catch (e: Exception) {
+            Log.w(TAG, "parseLogEntry failed for ${entry.name}", e)
             BatteryInfo(
-                healthPercent = null, cycleCount = null,
+                healthPercent = null,
+                cycleCount = null,
                 logFileName = entry.name,
-                errorMessage = "Read error: ${e.localizedMessage}"
+                readSuccess = false,
+                errorMessage = "파싱 오류: ${e.localizedMessage ?: "알 수 없는 오류"}"
             )
         }
     }
 
-    fun parseLatestLog(folderUri: Uri): BatteryInfo {
-        val logEntry = findLatestLogEntry(folderUri)
-            ?: return BatteryInfo(healthPercent = null, cycleCount = null, errorMessage = "NO_LOG_FOUND")
-        return parseLatestLog(folderUri, logEntry)
+    fun parseLatestLog(folderUri: Uri, latestEntry: DocEntry): BatteryInfo {
+        val parsed = parseLogEntry(folderUri, latestEntry)
+        if (parsed.readSuccess) cacheBatteryInfo(parsed)
+        return parsed
     }
-
-    /**
-     * 이미 찾아 둔 [logEntry]를 파싱한다. 폴더 목록을 다시 훑지 않으므로,
-     * 호출부가 [findLatestLogEntry] 결과를 이미 갖고 있으면 이쪽을 쓴다.
-     */
-    fun parseLatestLog(folderUri: Uri, logEntry: DocEntry): BatteryInfo {
-        val info = parseLogEntry(folderUri, logEntry)
-        BatteryCache.cacheBatteryInfo(prefs, info)
-        return info
-    }
-
-    fun smartScan(folderUri: Uri): BatteryInfo {
-        val latestEntry = findLatestLogEntry(folderUri) ?: return cachedOrNoLog()
-        return smartScan(folderUri, latestEntry)
-    }
-
-    /**
-     * 이미 찾아 둔 [latestEntry]로 스캔한다. 폴더 목록을 다시 훑지 않는다.
-     */
-    fun smartScan(folderUri: Uri, latestEntry: DocEntry): BatteryInfo {
-        val cached = BatteryCache.loadCachedBatteryInfo(prefs)
-        if (cached != null && cached.logFileName == latestEntry.name) {
-            return cached
-        }
-        return parseLatestLog(folderUri, latestEntry)
-    }
-
-    private fun cachedOrNoLog(): BatteryInfo =
-        BatteryCache.loadCachedBatteryInfo(prefs)
-            ?: BatteryInfo(healthPercent = null, cycleCount = null, errorMessage = "NO_LOG_FOUND")
 
     fun extractBatterySection(folderUri: Uri, entry: DocEntry): String {
         val fileUri = DocumentsContract.buildDocumentUriUsingTree(folderUri, entry.id)
         return try {
             context.contentResolver.openInputStream(fileUri)?.use { stream ->
-                BatteryParser.readBatterySections(stream) ?: context.getString(com.donian.galaxy_battery.R.string.raw_no_sections)
-            } ?: context.getString(com.donian.galaxy_battery.R.string.raw_open_failed)
+                BatteryParser.readBatterySections(stream) ?: "배터리 섹션을 찾을 수 없습니다."
+            } ?: "파일을 열 수 없습니다."
         } catch (e: Exception) {
-            context.getString(com.donian.galaxy_battery.R.string.raw_read_error, e.localizedMessage)
+            Log.w(TAG, "extractBatterySection failed for ${entry.name}", e)
+            "파일 읽기 오류: ${e.localizedMessage ?: "알 수 없는 오류"}"
         }
     }
 
-    // ── Cache passthrough ─────────────────────────────────────────────────────
+    fun smartScan(folderUri: Uri, latestEntry: DocEntry): BatteryInfo =
+        parseLatestLog(folderUri, latestEntry)
 
-    fun loadCachedBatteryInfo(): BatteryInfo? = BatteryCache.loadCachedBatteryInfo(prefs)
+    // ── Cache operations ──────────────────────────────────────────────────────
 
-    fun cacheBatteryInfo(info: BatteryInfo) = BatteryCache.cacheBatteryInfo(prefs, info)
+    fun cacheBatteryInfo(info: BatteryInfo) {
+        BatteryCache.cacheBatteryInfo(prefs, info)
+    }
 
-    fun clearBatteryInfoCache() = BatteryCache.clearBatteryInfoCache(prefs)
+    fun loadCachedBatteryInfo(): BatteryInfo? {
+        return BatteryCache.loadCachedBatteryInfo(prefs)
+    }
+
+    fun clearBatteryInfoCache() {
+        BatteryCache.clearBatteryInfoCache(prefs)
+    }
 }

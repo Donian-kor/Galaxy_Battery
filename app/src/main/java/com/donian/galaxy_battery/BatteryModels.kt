@@ -74,9 +74,9 @@ data class DocEntry(
     val lastModified: Long = 0L
 )
 
-/** Overlay error dialogs — replaces the three full-screen error routes. */
+/** 전체 화면을 덮던 오류 경로 3종을 오버레이 다이얼로그로 대체한다. */
 sealed class ErrorDialog {
     data class WrongFolder(val errorMessage: String) : ErrorDialog()
-    object FolderDeleted  : ErrorDialog()
-    object PermissionLost : ErrorDialog()
+    data object FolderDeleted  : ErrorDialog()
+    data object PermissionLost : ErrorDialog()
 }

@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     res/values-night/themes.xml
-    Dark-mode override: forces the launch window background to #0A0E18
-    before Compose starts drawing. No AppCompat dependency.
+    다크 모드 재정의: Compose가 그리기를 시작하기 전에 실행 윈도우 배경색을 #0A0E18로 지정한다.
 -->
 <resources>
 

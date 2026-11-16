@@ -52,7 +52,6 @@ fun BatteryDashboard(
 ) {
     val info             = viewModel.batteryInfo
     val isLoadingDetail  = viewModel.isLoadingDetail || info == null
-    val isRefreshing     = viewModel.isRefreshing
     val folderAccessible = viewModel.alreadyHasPerm && viewModel.folderAccessible
     val showLogSheet     = viewModel.showLogSheet
     val allLogEntries    = viewModel.allLogEntries
@@ -87,9 +86,8 @@ fun BatteryDashboard(
 
     Box(Modifier.fillMaxSize()) {
         RescanPullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRescan     = { viewModel.rescan() },
-            modifier     = Modifier.fillMaxSize()
+            onRescan = { viewModel.rescan() },
+            modifier = Modifier.fillMaxSize()
         ) {
             Column(
                 Modifier

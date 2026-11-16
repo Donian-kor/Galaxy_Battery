@@ -3,32 +3,49 @@ package com.donian.galaxy_battery
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+/**
+ * Scrollbar thumb ratio calculation.
+ *
+ * [scrollbarFraction] also runs during the very first composition, before the content has
+ * been measured. It therefore has to stay safe when the scrollable range is still zero or
+ * absurdly large, and when the scroll offset already sits past the end of the track.
+ */
 class ScrollbarTest {
 
-    @Test
-    fun `content that fits has no scroll range`() {
-        assertEquals(0f, scrollbarFraction(value = 0, maxValue = 0), 0f)
+    /** Checks a single (offset, range) pair against the ratio it must produce. */
+    private fun verifyRatio(offset: Int, range: Int, expected: Float) {
+        assertEquals(
+            "offset=$offset, range=$range",
+            expected,
+            scrollbarFraction(offset, range),
+            0f
+        )
     }
 
     @Test
-    fun `a range that shrank to nothing stays at the start`() {
-        assertEquals(0f, scrollbarFraction(value = 120, maxValue = 0), 0f)
+    fun `non scrolling content reports the start of the track`() {
+        verifyRatio(offset = 0, range = 0, expected = 0f)
     }
 
     @Test
-    fun `the thumb follows the scroll position`() {
-        assertEquals(0f, scrollbarFraction(value = 0, maxValue = 400), 0f)
-        assertEquals(0.5f, scrollbarFraction(value = 200, maxValue = 400), 0f)
-        assertEquals(1f, scrollbarFraction(value = 400, maxValue = 400), 0f)
+    fun `a range collapsing to zero still reports the start`() {
+        verifyRatio(offset = 120, range = 0, expected = 0f)
     }
 
     @Test
-    fun `an unmeasured range doesn't overflow`() {
-        assertEquals(0f, scrollbarFraction(value = 0, maxValue = Int.MAX_VALUE), 0f)
+    fun `the ratio grows linearly with the offset`() {
+        verifyRatio(offset = 0,   range = 400, expected = 0f)
+        verifyRatio(offset = 200, range = 400, expected = 0.5f)
+        verifyRatio(offset = 400, range = 400, expected = 1f)
     }
 
     @Test
-    fun `a position past the end stops at the end of the track`() {
-        assertEquals(1f, scrollbarFraction(value = 500, maxValue = 400), 0f)
+    fun `an unmeasured range cannot push the ratio out of bounds`() {
+        verifyRatio(offset = 0, range = Int.MAX_VALUE, expected = 0f)
+    }
+
+    @Test
+    fun `an offset beyond the end clamps to the end of the track`() {
+        verifyRatio(offset = 500, range = 400, expected = 1f)
     }
 }

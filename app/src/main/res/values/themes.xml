@@ -2,9 +2,9 @@
 <resources>
 
     <!--
-        Base theme — used for the launch window background only.
-        Inherits from the platform Material theme (no AppCompat required).
-        Compose draws all UI; this theme only controls the pre-draw window chrome.
+        기본 테마 — 앱 실행 시 윈도우 배경색으로만 사용된다.
+        플랫폼 Material 테마를 상속받는다 (AppCompat 불필요).
+        UI는 Compose가 다 그리며, 이 테마는 사전 렌더링 윈도우 크롬만 제어한다.
     -->
     <style name="Theme.GalaxyBattery" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:colorBackground">#FAFAFA</item>
